@@ -1,0 +1,5 @@
+- implementar o A*
+- adicionar randomness ao greedy
+- apresentar o score, sendo a soma das values dos veículos escolhidos
+- fazer o GUI
+- (maybe tentar implementar outro algoritmo para mostrar que não dá)
