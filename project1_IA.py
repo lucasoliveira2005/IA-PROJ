@@ -1,3 +1,7 @@
+import os
+import random
+import statistics
+
 #definitions
 class Ride:
     def __init__(self, ride_id, start_row, start_col, end_row, end_col, earliest_start, latest_finish):
@@ -53,9 +57,68 @@ class HashCodeState:
 
 
 
-#extract data from Input data set
-name_input = str(input("Filename of Input data set (with file extension, for example: .txt): "))
-name_output = str(input("Filename of Submission file (with file extension, for example: .txt): "))
+#---------MENU---------#
+# Extract data from Input data set
+
+input_folder = "inputs"
+
+# Get all files in the folder (checks if the path file contains the folder)
+files = [f for f in os.listdir(input_folder) if os.path.isfile(os.path.join(input_folder, f))]
+
+# Show menu
+print("\nAvailable input files:")
+for i, file in enumerate(files):
+    print(f"{i + 1}. {file}")
+
+# Choose file (also verifies if input is a number in the correct range)
+while True:
+    try:
+        choice = int(input("Select a file by number: ")) - 1
+        if 0 <= choice < len(files):
+            break
+        else:
+            print("Invalid number, try again.")
+    except ValueError:
+        print("Please enter a number.")
+
+# Get full path
+name_input = os.path.join(input_folder, files[choice])
+
+print(f"\nSelected: {name_input}")
+
+
+# Choose mode of execution (either a single run or analysis with multiple runs)
+
+print("\nExecution mode:")
+print("1. Single run")
+print("2. Multiple runs (analysis)")
+
+while True:
+    try:
+        mode = int(input("Choose mode: "))
+        if mode in [1, 2]:
+            break
+        else:
+            print("Invalid choice.")
+    except ValueError:
+        print("Enter a number.")
+
+n_runs = 1
+if mode == 2:
+    while True:
+        try:
+            n_runs = int(input("Number of runs: "))
+            if n_runs > 0:
+                break
+            else:
+                print("Must be > 0.")
+        except ValueError:
+            print("Enter a number.")
+
+
+filename = os.path.basename(name_input) # gets only the name of the file, removing the path
+base, _ = os.path.splitext(filename) # removes the file extension
+name_output = os.path.join("outputs", base + ".out") #creates the output file, with correct path and file extension
 
 fh = open(name_input, "r")
 R, C, F, N, B, T = map(int, fh.readline().split())
@@ -66,14 +129,14 @@ for i in range(N):
     rides.append(Ride(i, a, b, x, y, s, f))
 
 vehicles = [Vehicle(i) for i in range(F)]
-initial_state = HashCodeState(vehicles, rides)
 
 fh.close()
 
 
 
 
-#operators
+#-------Operators---------#
+
 def apply_operator(state, operator, bonus, T):
     vehicle_id, ride_id = operator
 
@@ -100,61 +163,10 @@ def apply_operator(state, operator, bonus, T):
 
     return state
 
-"""
-def choose_best_operator(state, bonus, T):  #choose best vehicule/ride pair for highest value
-    best_op = None
-    best_value = float('-inf')
-    
-    safe_replacement_op = None   # in case there is no Best operator, this one will be used instead
 
-    for vehicle in state.vehicles:        #the for loops generate the operators (meaning the vehicule/ride pairs)
-        for ride in state.remaining_rides:
-            if vehicle.can_complete_ride(ride, T):
-                
-                if safe_replacement_op is None:     # save first feasible operator
-                    safe_replacement_op = (vehicle.id, ride.id)
-                
-                dist_to_start = vehicle.distance_to_ride_start(ride)
-                ride_dist = ride.distance()
-                arrival = vehicle.time + dist_to_start
-                wait_time = max(0, ride.s - arrival)
-                
-                value = ride_dist - dist_to_start - wait_time    #heuristic (from Scoring section + using wait_time to penalize waiting)
-                if arrival <= ride.s:
-                    value += bonus
-
-                if value > best_value:
-                    best_value = value
-                    best_op = (vehicle.id, ride.id)
-    
-    if best_op is not None:
-        return best_op
-
-    return safe_replacement_op
-"""
-
-"""
-#greedy
-def greedy_search(initial_state, bonus, T):
-    state = initial_state
-
-    while True:
-        op = choose_best_operator(state, bonus, T)
-        if op is None:  # in case there are no feasible operators
-            break
-
-        new_state = apply_operator(state, op, bonus, T)
-        if new_state is None:
-            break
-
-        state = new_state
-
-    return state
-"""
-
-# Intead of choosing globally the best ride, which would favour vehicules 
+# Intead of choosing globally the best ride, which would favour vehicles 
 # already used, since they would technically be closer to the ride start most times,
-# it chooses locally the best ride for each vehicule, being closer to
+# it chooses locally the best ride for each vehicle, being closer to
 # a parallel scheduler and more efficient overall
 def choose_best_ride_for_vehicle(state, vehicle, bonus, T):
     best_ride = None
@@ -180,11 +192,12 @@ def choose_best_ride_for_vehicle(state, vehicle, bonus, T):
     return best_ride
 
 #greedy
-def greedy_search(initial_state, bonus, T):
-    state = initial_state
+def greedy_search(state, bonus, T):
 
     while True:
         progress = False
+        
+        random.shuffle(state.vehicles) #shuffles vehicles each iteration
 
         for vehicle in state.vehicles:
             best_ride = choose_best_ride_for_vehicle(state, vehicle, bonus, T)
@@ -199,8 +212,32 @@ def greedy_search(initial_state, bonus, T):
     return state
 
 
-#solve problem
-final_state = greedy_search(initial_state, B, T)
+
+#-----solve problem------#
+
+best_state = None
+best_score = -1
+scores = []
+
+print()
+
+for i in range(n_runs):
+    print(f"Run {i+1}/{n_runs}", end="\r") # track progress
+    # recreate vehicles and state each run (necessary since they're modified with each run of the algorithm)
+    vehicles = [Vehicle(i) for i in range(F)]
+    state = HashCodeState(vehicles, list(rides))
+
+    result = greedy_search(state, B, T)
+
+    scores.append(result.score)
+
+    if result.score > best_score:
+        best_score = result.score
+        best_state = result
+        
+print()
+
+final_state = best_state
 
 
 #output data
@@ -211,7 +248,87 @@ for v in final_state.vehicles:
 
 fh.close()
 
+print(f"\nOutput written to: {name_output}")
 
+
+
+# Analysis of the results or score for the run
+if n_runs > 1:
+    avg = sum(scores) / len(scores)
+    std_dev = statistics.stdev(scores) if len(scores) > 1 else 0
+    min_score = min(scores)
+    max_score = max(scores)
+
+    print(f"\nAverage score: {avg:.2f}")
+    print(f"Std deviation: {std_dev:.2f}")
+    print(f"Min score: {min_score}")
+    print(f"Max score: {max_score}")
+    
+else:
+    print(f"\nScore for this run: {final_state.score}")
+
+
+
+
+
+
+
+
+
+
+
+
+# Old stratagy of choosing best vehicle for ride (resulted in same set of vehicles getting all the rides)
+"""
+def choose_best_operator(state, bonus, T):  #choose best vehicle/ride pair for highest value
+    best_op = None
+    best_value = float('-inf')
+    
+    safe_replacement_op = None   # in case there is no Best operator, this one will be used instead
+
+    for vehicle in state.vehicles:        #the for loops generate the operators (meaning the vehicle/ride pairs)
+        for ride in state.remaining_rides:
+            if vehicle.can_complete_ride(ride, T):
+                
+                if safe_replacement_op is None:     # save first feasible operator
+                    safe_replacement_op = (vehicle.id, ride.id)
+                
+                dist_to_start = vehicle.distance_to_ride_start(ride)
+                ride_dist = ride.distance()
+                arrival = vehicle.time + dist_to_start
+                wait_time = max(0, ride.s - arrival)
+                
+                value = ride_dist - dist_to_start - wait_time    #heuristic (from Scoring section + using wait_time to penalize waiting)
+                if arrival <= ride.s:
+                    value += bonus
+
+                if value > best_value:
+                    best_value = value
+                    best_op = (vehicle.id, ride.id)
+    
+    if best_op is not None:
+        return best_op
+
+    return safe_replacement_op
+
+
+
+#greedy
+def greedy_search(state, bonus, T):
+
+    while True:
+        op = choose_best_operator(state, bonus, T)
+        if op is None:  # in case there are no feasible operators
+            break
+
+        new_state = apply_operator(state, op, bonus, T)
+        if new_state is None:
+            break
+
+        state = new_state
+
+    return state
+"""
 
 
 #If we need/want to use BFS/DFS/A*
