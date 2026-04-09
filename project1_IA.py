@@ -86,6 +86,27 @@ name_input = os.path.join(input_folder, files[choice])
 
 print(f"\nSelected: {name_input}")
 
+print("\nAlgorithm")
+print("1. Best First Search (Greedy)")
+print("2. Weighted A* (default weight is 1)")
+
+while True:
+    try:
+        algorithm = int(input("Choose algorithm: "))
+        if algorithm == 1:
+            break
+        if algorithm == 2:
+            weight = int(input("Choose a weight for the A*: "))
+
+            while (weight < 1):
+                weight = int(input("Weight shoud be >= 1*: "))
+            break
+        else:
+            print("Invalid choice.")
+    except ValueError:
+        print("Enter a number.")
+
+
 
 # Choose mode of execution (either a single run or analysis with multiple runs)
 
@@ -115,7 +136,6 @@ if mode == 2:
         except ValueError:
             print("Enter a number.")
 
-
 filename = os.path.basename(name_input) # gets only the name of the file, removing the path
 base, _ = os.path.splitext(filename) # removes the file extension
 name_output = os.path.join("outputs", base + ".out") #creates the output file, with correct path and file extension
@@ -138,7 +158,7 @@ fh.close()
 #-------Operators---------#
 
 def apply_operator(state, operator, bonus, T):
-    vehicle_id, ride_id = operator
+    vehicle, ride = operator
 
     vehicle = next(v for v in state.vehicles if v.id == vehicle_id)
     ride = next(r for r in state.remaining_rides if r.id == ride_id)
@@ -191,6 +211,31 @@ def choose_best_ride_for_vehicle(state, vehicle, bonus, T):
 
     return best_ride
 
+
+def choose_best_ride_for_vehicle_AStar(state, vehicle, bonus, T, weight=1):
+    best_ride = None
+    best_value = float('-inf')
+
+    for ride in state.remaining_rides:
+        if vehicle.can_complete_ride(ride, T):
+
+            dist_to_start = vehicle.distance_to_ride_start(ride)
+            ride_dist = ride.distance()
+            arrival = vehicle.time + dist_to_start
+            wait_time = max(0, ride.s - arrival)
+
+            heuristic = ride_dist - dist_to_start - wait_time    #heuristic (from Scoring section + using wait_time to penalize waiting)
+            result = state.score + weight*heuristic
+
+            if arrival <= ride.s:
+                result += bonus
+
+            if result > best_value:
+                best_value = result
+                best_ride = ride
+
+    return best_ride
+
 #greedy
 def greedy_search(state, bonus, T):
 
@@ -201,6 +246,27 @@ def greedy_search(state, bonus, T):
 
         for vehicle in state.vehicles:
             best_ride = choose_best_ride_for_vehicle(state, vehicle, bonus, T)
+
+            if best_ride is not None:
+                apply_operator(state, (vehicle.id, best_ride.id), bonus, T)
+                progress = True
+
+        if not progress:
+            break
+
+    return state
+
+
+#A*
+def A_star(state, bonus, T):
+
+    while True:
+        progress = False
+        
+        random.shuffle(state.vehicles) #shuffles vehicles each iteration
+
+        for vehicle in state.vehicles:
+            best_ride = choose_best_ride_for_vehicle_AStar(state, vehicle, bonus, T, 1)
 
             if best_ride is not None:
                 apply_operator(state, (vehicle.id, best_ride.id), bonus, T)
@@ -227,7 +293,10 @@ for i in range(n_runs):
     vehicles = [Vehicle(i) for i in range(F)]
     state = HashCodeState(vehicles, list(rides))
 
-    result = greedy_search(state, B, T)
+    if (algorithm == 1):
+        result = greedy_search(state, B, T)
+    elif (algorithm == 2):
+        result = A_star(state, B, T)
 
     scores.append(result.score)
 
@@ -266,12 +335,6 @@ if n_runs > 1:
     
 else:
     print(f"\nScore for this run: {final_state.score}")
-
-
-
-
-
-
 
 
 
@@ -330,7 +393,6 @@ def greedy_search(state, bonus, T):
     return state
 """
 
-
 #If we need/want to use BFS/DFS/A*
 """
 #definition of Tree Node for states
@@ -360,5 +422,3 @@ def goal_state_func(state):
     return len(state.remaining_rides) == 0
 
 """
-
-
