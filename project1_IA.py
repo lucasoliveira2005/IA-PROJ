@@ -158,7 +158,7 @@ fh.close()
 #-------Operators---------#
 
 def apply_operator(state, operator, bonus, T):
-    vehicle, ride = operator
+    vehicle_id, ride_id = operator
 
     vehicle = next(v for v in state.vehicles if v.id == vehicle_id)
     ride = next(r for r in state.remaining_rides if r.id == ride_id)
