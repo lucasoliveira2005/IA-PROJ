@@ -61,35 +61,43 @@ void apply_operator(State& state, int vehicle_idx, const Ride& ride, int bonus, 
     state.num_used++;
 }
 
-/*
-// Implementação simples do Greedy em C++
-State greedy_search(vector<Vehicle> vels, vector<Ride> rds, int B, int T) {
-    State s; s.vehicles = vels; s.remaining_rides = rds;
-    bool progress = true;
-    while (progress) {
-        progress = false;
-        for (auto& v : s.vehicles) {
+State greedy_search(vector<Vehicle> vels, const vector<Ride>& rds, int B, int T) {
+    State s;
+    s.vehicles = vels;
+    s.used_rides.assign(rds.size(), false);
+    
+    for (auto& v : s.vehicles) {
+        while (true) {
             int best_ride_idx = -1;
-            int best_val = -2e9;
-            for (size_t i = 0; i < s.remaining_rides.size(); ++i) {
-                if (v.can_complete(s.remaining_rides[i], T)) {
-                    int val = evaluate(0, v, s.remaining_rides[i], B, 1);
-                    if (val > best_val) {
-                        best_val = val;
-                        best_ride_idx = (int)i;
+            double best_score = -1e18;
+
+            for (size_t i = 0; i < rds.size(); ++i) {
+                if (s.used_rides[i]) continue;
+                if (v.can_complete(rds[i], T)) {
+                    // Heuristic: prioritize short travel + wait time
+                    int dist = v.dist_to_ride(rds[i]);
+                    int wait = max(0, rds[i].s - (v.time + dist));
+                    
+                    // Simple but effective: higher score for less "wasted" time
+                    double val = (double)rds[i].distance() / (dist + wait + 1);
+                    if (v.time + dist <= rds[i].s) val += B; // Bonus potential
+
+                    if (val > best_score) {
+                        best_score = val;
+                        best_ride_idx = i;
                     }
                 }
             }
+
             if (best_ride_idx != -1) {
-                apply_operator(s, (int)(&v - &s.vehicles[0]), best_ride_idx, B, T);
-                progress = true;
+                apply_operator(s, (int)(&v - &s.vehicles[0]), rds[best_ride_idx], B, T);
+            } else {
+                break; // No more rides possible for this vehicle
             }
         }
     }
     return s;
 }
-
-*/
 
 State A_star(const vector<Vehicle>& init_v, const vector<Ride>& all_rides, int B, int T, int weight) {
 
@@ -176,7 +184,7 @@ int main() {
     for (int i = 0; i < F; ++i) vehicles[i].id = i;
 
     State result;
-    if (algo == 1) /*result = greedy_search(vehicles, rides, B, T);*/;
+    if (algo == 1) result = greedy_search(vehicles, rides, B, T);
     else result = A_star(vehicles, rides, B, T, weight);
 
     sort(result.vehicles.begin(), result.vehicles.end(), [](const Vehicle& a, const Vehicle& b) {
