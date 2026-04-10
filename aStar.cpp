@@ -31,9 +31,10 @@ struct Vehicle {
 
 struct State {
     vector<Vehicle> vehicles;
-    vector<Ride> remaining_rides;
+    vector<bool> used_rides;    //muito mais leve que ter um vector<Ride>
     int score = 0;
     int f_value = 0;
+    int num_used = 0;           //para o contador saber quando parar
     bool operator<(const State& other) const { return f_value < other.f_value; }
 };
 
@@ -47,19 +48,20 @@ int evaluate(int currentScore, const Vehicle& v, const Ride& r, int bonus, int w
     return currentScore + (weight * heuristic);
 }
 
-void apply_operator(State& state, int vehicle_idx, int ride_idx, int bonus, int T) {
+void apply_operator(State& state, int vehicle_idx, const Ride& ride, int bonus, int T) {
     Vehicle& v = state.vehicles[vehicle_idx];
-    const Ride& r = state.remaining_rides[ride_idx];
-    int dist_to_start = v.dist_to_ride(r);
-    int start_time = max(v.time + dist_to_start, r.s);
-    if (start_time == r.s) state.score += bonus;
-    state.score += r.distance();
-    v.row = r.x; v.col = r.y;
-    v.time = start_time + r.distance();
-    v.assigned_rides.push_back(r.id);
-    state.remaining_rides.erase(state.remaining_rides.begin() + ride_idx);
+    int dist_to_start = v.dist_to_ride(ride);
+    int start_time = max(v.time + dist_to_start, ride.s);
+    if (start_time == ride.s) state.score += bonus;
+    state.score += ride.distance();
+    v.row = ride.x; v.col = ride.y;
+    v.time = start_time + ride.distance();
+    v.assigned_rides.push_back(ride.id);
+    state.used_rides[ride.id] = true;
+    state.num_used++;
 }
 
+/*
 // Implementação simples do Greedy em C++
 State greedy_search(vector<Vehicle> vels, vector<Ride> rds, int B, int T) {
     State s; s.vehicles = vels; s.remaining_rides = rds;
@@ -87,24 +89,47 @@ State greedy_search(vector<Vehicle> vels, vector<Ride> rds, int B, int T) {
     return s;
 }
 
-State A_star(const vector<Vehicle>& init_v, const vector<Ride>& init_r, int B, int T, int weight) {
+*/
+
+State A_star(const vector<Vehicle>& init_v, const vector<Ride>& all_rides, int B, int T, int weight) {
+
     priority_queue<State> pq;
-    State initial; initial.vehicles = init_v; initial.remaining_rides = init_r;
+    State initial;
+    initial.vehicles = init_v;
+    initial.used_rides.assign(all_rides.size(), false);
+
     pq.push(initial);
     State best_node = initial;
     int nodes = 0;
+
     while (!pq.empty() && nodes < 10000000) { // Limite de expansão para não estourar RAM
-        State curr = pq.top(); pq.pop();
-        if (curr.score > best_node.score) best_node = curr;
-        if (curr.remaining_rides.empty()) break;
+
+        State curr = pq.top();
+        pq.pop();
+
+        if (curr.score > best_node.score) {
+            best_node = curr;
+        }
+
+        if (curr.num_used == (int)all_rides.size()) break;
         nodes++;
-        for (size_t i = 0; i < min(curr.remaining_rides.size(), (size_t)15); ++i) {
+
+        int tried_in_this_node = 0;     // Para efeitos de performance, limitamos quantas rides novas tentamos por nó
+
+        for (size_t i = 0; (i < all_rides.size() && tried_in_this_node < 15); ++i) {
+
+            if (curr.used_rides[i]) continue; // Se esta ride já foi usada neste branch, então da skip
+            const Ride& r = all_rides[i];
+
             for (size_t j = 0; j < curr.vehicles.size(); ++j) {
-                if (curr.vehicles[j].can_complete(curr.remaining_rides[i], T)) {
+                if (curr.vehicles[j].can_complete(r, T)) {
+
                     State next_s = curr;
-                    next_s.f_value = evaluate(next_s.score, next_s.vehicles[j], next_s.remaining_rides[i], B, weight);
-                    apply_operator(next_s, (int)j, (int)i, B, T);
+                    next_s.f_value = evaluate(next_s.score, next_s.vehicles[j], r, B, weight);
+                    apply_operator(next_s, (int)j, r, B, T);
+
                     pq.push(next_s);
+                    tried_in_this_node++;
                     break; 
                 }
             }
@@ -151,7 +176,7 @@ int main() {
     for (int i = 0; i < F; ++i) vehicles[i].id = i;
 
     State result;
-    if (algo == 1) result = greedy_search(vehicles, rides, B, T);
+    if (algo == 1) /*result = greedy_search(vehicles, rides, B, T);*/;
     else result = A_star(vehicles, rides, B, T, weight);
 
     sort(result.vehicles.begin(), result.vehicles.end(), [](const Vehicle& a, const Vehicle& b) {
