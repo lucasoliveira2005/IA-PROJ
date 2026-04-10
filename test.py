@@ -170,10 +170,7 @@ fh.close()
 #-------Operators---------#
 
 def apply_operator(state, operator, bonus, T):
-    vehicle_id, ride_id = operator
-
-    vehicle = next(v for v in state.vehicles if v.id == vehicle_id)
-    ride = next(r for r in state.remaining_rides if r.id == ride_id)
+    vehicle, ride = operator
 
     start_time = vehicle.earliest_possible_start(ride)
     finish_time = vehicle.finish_time(ride)
@@ -188,9 +185,10 @@ def apply_operator(state, operator, bonus, T):
     vehicle.row = ride.x
     vehicle.col = ride.y
     vehicle.time = finish_time
+
+    state.remaining_rides = [r for r in state.remaining_rides if r.id != ride.id]
     vehicle.assigned_rides.append(ride.id)
 
-    state.remaining_rides.remove(ride)
     state.score += earned
 
     return state
@@ -271,20 +269,21 @@ def A_star(initialstate, bonus, T, weight=1):
         for ride in currentState.remaining_rides:
             
             found = False
-            for _ in range(len(vehicle_queue)):
-                currentVehicle = vehicle_queue[0]
-                vehicle_queue.rotate(-1)
-                if currentVehicle.can_complete_ride(ride, T):
+            currentVehicle = None
+            for v in currentState.vehicles:
+                if v.can_complete_ride(ride, T):
                     found = True
+                    currentVehicle = v
                     break
-                vehicle_queue.append(currentVehicle)
 
             if not found:
                 continue
 
-            new_state = deepcopy(currentState) #copia o estado atua
+            new_vehicles = deepcopy(currentState.vehicles)
+            new_rides = list(currentState.remaining_rides)
+            new_state = HashCodeState(new_vehicles, new_rides, currentState.score, currentState)
             new_vehicle = next(v for v in new_state.vehicles if v.id == currentVehicle.id)
-            apply_operator(new_state, (new_vehicle.id, ride.id), bonus, T)
+            apply_operator(new_state, (new_vehicle, ride), bonus, T)
             f_new = - (evaluate(new_state.score, new_vehicle, ride, weight))
             heapq.heappush(rides_heap, (f_new, counter, new_state))
             counter += 1
@@ -299,9 +298,8 @@ def evaluate(score, vehicle, ride, weight):
     arrival = vehicle.time + dist_to_start
     wait_time = max(0, ride.s - arrival)
     heuristic = ride_dist - dist_to_start - wait_time    #heuristic (from Scoring section + using wait_time to penalize waiting)
-    result = score + weight*heuristic
 
-    return result
+    return score + (weight * heuristic)
 
 
 

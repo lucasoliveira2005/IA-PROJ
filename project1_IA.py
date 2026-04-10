@@ -310,6 +310,7 @@ final_state = best_state
 
 
 #output data
+final_vehicles = sorted(final_state.vehicles, key=lambda v: v.id)
 fh = open(name_output, "w")
 for v in final_state.vehicles:
     v_rides = " ".join(str(r) for r in v.assigned_rides)
