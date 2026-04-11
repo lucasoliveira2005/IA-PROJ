@@ -4,7 +4,7 @@ import statistics
 import time as run_time
 import sys
 
-#definitions
+#-------Definitions-------#
 class Ride:
     def __init__(self, ride_id, start_row, start_col, end_row, end_col, earliest_start, latest_finish):
         self.id = ride_id
@@ -59,8 +59,8 @@ class HashCodeState:
 
 
 
-#---------MENU---------#
-# Extract data from Input data set
+#-------MENU-------#
+# Extract data from Input dataset
 
 input_folder = "inputs"
 
@@ -112,7 +112,7 @@ vehicles = [Vehicle(i) for i in range(F)]
 fh.close()
 
 
-# Choose which algorithm to run the data set with
+# Choose which algorithm to run the dataset with
 
 print("\nAlgorithm to use:")
 print("1. Greedy Best-First-Search (Best ride per vehicle)")
@@ -215,7 +215,7 @@ if mode == 2:
 
 
 
-#-------Operators---------#
+#-------Operators-------#
 
 # Applies a (vehicle, ride) assignment to the current state
 def apply_operator(state, operator, bonus, T):
@@ -297,7 +297,7 @@ def choose_best_ride_for_vehicle(state, vehicle, bonus, T):
             arrival = vehicle.time + dist_to_start
             wait_time = max(0, ride.s - arrival)
 
-            value = ride_dist - dist_to_start - wait_time    #heuristic (from Scoring section + using wait_time to penalize waiting)
+            value = ride_dist - dist_to_start - wait_time    # heuristic (from Scoring section + using wait_time to penalize waiting)
 
             if arrival <= ride.s:
                 value += bonus
@@ -351,7 +351,7 @@ def old_greedy_search(state, bonus, T):
     return state
 
 
-#-----solve problem------#
+#-------solve problem-------#
 
 best_state = None
 best_score = -1
@@ -401,7 +401,7 @@ if best_state is None:
 final_state = best_state
 
 
-#output data
+# Output data
 fh = open(name_output, "w")
 for v in final_state.vehicles:
     v_rides = " ".join(str(r) for r in v.assigned_rides)
@@ -430,7 +430,7 @@ if n_runs > 1:
     print(f"Min score: {min_score}")
     print(f"Max score: {max_score}")
     
-    # Normalised metrics (better for comparisons of algorithms between data sets)
+    # Normalised metrics (better for comparisons of algorithms between datasets)
     print(f"\nAverage score per ride: {avg / N:.2f}")
     print(f"Average normalised score: {avg / theoretical_max_possible:.4f}") # The closer to 1 the better
     
@@ -442,7 +442,7 @@ else:
     # Raw metrics
     print(f"\nScore for this run: {score}")
     
-    # Normalised metrics (better for comparisons of algorithms between data sets)
+    # Normalised metrics (better for comparisons of algorithms between datasets)
     print(f"Score per ride: {score / N:.2f}")
     print(f"Normalised score: {score / theoretical_max_possible:.4f}") # The closer to 1 the better
     
