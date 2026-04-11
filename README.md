@@ -18,3 +18,8 @@ IMPLEMENTED:
 - (por enquanto, safe exit para quando o algoritmo ainda não está implementado - vai ser preciso remover depois) <-------------------
 - aviso adicionado com o uso da variável heavy_file para quando o A* search ou o Beam search possam ser bastante pesados com o data set escolhido
 - comentários adicionados e ligeiramente melhorados para compreensão do código e das suas diferentes secções
+
+
+COMANDOS:
+-pip install flask
+-python project1_IA.py

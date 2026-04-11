@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ride Scheduler — Comparação de Algoritmos</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:#ffffff; --bg2:#f5f5f3; --bg3:#ebebea;
+      --border:rgba(0,0,0,0.12); --border2:rgba(0,0,0,0.25);
+      --text:#1a1a18; --text2:#666660; --text3:#999993;
+      --accent:#185FA5; --accent-l:#E6F1FB; --accent-m:#378ADD;
+      --radius:12px; --radius-s:8px;
+      --mono:'Space Mono',monospace; --sans:'DM Sans',sans-serif;
+      /* Algorithm colors */
+      --alg1:#185FA5; --alg1-l:#E6F1FB;
+      --alg2:#3B6D11; --alg2-l:#EAF3DE;
+      --alg3:#854F0B; --alg3-l:#FAEEDA;
+      --alg4:#7F77DD; --alg4-l:#EFEEFC;
+    }
+    @media(prefers-color-scheme:dark){
+      :root{
+        --bg:#1c1c1a; --bg2:#252523; --bg3:#2e2e2b;
+        --border:rgba(255,255,255,0.10); --border2:rgba(255,255,255,0.22);
+        --text:#f0efe8; --text2:#999993; --text3:#666660;
+        --accent-l:#0c2d4a; --accent-m:#5ba0d8;
+        --alg1-l:#0c2d4a; --alg2-l:#173404; --alg3-l:#412402; --alg4-l:#1e1c42;
+      }
+    }
+    html,body{height:100%;font-family:var(--sans);background:var(--bg);color:var(--text);}
+    .app{display:grid;grid-template-rows:auto 1fr;height:100vh;overflow:hidden;}
+
+    /* header */
+    .header{padding:1rem 1.5rem;border-bottom:0.5px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:1rem;background:var(--bg);}
+    .header h1{font-family:var(--mono);font-size:15px;font-weight:700;letter-spacing:-0.3px;}
+    .header p{font-size:12px;color:var(--text2);margin-top:1px;}
+
+    .pill{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:500;padding:3px 9px;border-radius:20px;font-family:var(--mono);}
+    .pill-blue{background:#E6F1FB;color:#185FA5;}
+    .pill-green{background:#EAF3DE;color:#3B6D11;}
+    .pill-amber{background:#FAEEDA;color:#854F0B;}
+    .pill-red{background:#FCEBEB;color:#A32D2D;}
+    .pill-purple{background:#EFEEFC;color:#7F77DD;}
+    @media(prefers-color-scheme:dark){
+      .pill-blue{background:#0c2d4a;color:#85B7EB;}
+      .pill-green{background:#173404;color:#97C459;}
+      .pill-amber{background:#412402;color:#EF9F27;}
+      .pill-red{background:#501313;color:#F09595;}
+      .pill-purple{background:#1e1c42;color:#B3AFEE;}
+    }
+    .dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+    .dot-green{background:#3B6D11;} .dot-amber{background:#BA7517;} .dot-blue{background:#185FA5;} .dot-red{background:#A32D2D;}
+
+    /* layout */
+    .main{display:grid;grid-template-columns:280px 1fr;overflow:hidden;}
+
+    /* sidebar */
+    .sidebar{border-right:0.5px solid var(--border);padding:1.25rem;display:flex;flex-direction:column;gap:1.25rem;background:var(--bg2);overflow-y:auto;}
+    .section-label{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:7px;}
+
+    /* file selector */
+    .file-select-wrap{display:flex;flex-direction:column;gap:6px;}
+    .file-select-btn{
+      display:flex;align-items:center;gap:8px;padding:8px 10px;
+      background:var(--bg);border:0.5px solid var(--border2);border-radius:var(--radius-s);
+      cursor:pointer;transition:all 0.12s;font-size:12px;color:var(--text);
+    }
+    .file-select-btn:hover{border-color:var(--accent-m);}
+    .file-select-btn.active{border-color:var(--accent);background:var(--accent-l);color:var(--accent);}
+    .file-select-btn .file-ext{
+      font-family:var(--mono);font-size:9px;font-weight:700;
+      background:var(--bg2);border:0.5px solid var(--border);border-radius:4px;
+      padding:1px 5px;color:var(--text2);flex-shrink:0;
+    }
+    .file-select-btn.active .file-ext{background:var(--accent-l);color:var(--accent);}
+    .file-select-btn .file-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+
+    .or-divider{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text3);}
+    .or-divider::before,.or-divider::after{content:'';flex:1;height:0.5px;background:var(--border);}
+
+    .file-upload-label{
+      display:flex;align-items:center;justify-content:center;gap:6px;
+      padding:8px;border:1.5px dashed var(--border2);border-radius:var(--radius-s);
+      cursor:pointer;font-size:12px;color:var(--text2);transition:all 0.12s;
+      background:var(--bg);position:relative;
+    }
+    .file-upload-label:hover{border-color:var(--accent-m);color:var(--accent);}
+    .file-upload-label input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+
+    /* server status */
+    .server-banner{padding:8px 10px;border-radius:var(--radius-s);font-size:11px;display:flex;align-items:center;gap:6px;}
+    .server-banner.ok{background:#EAF3DE;color:#3B6D11;}
+    .server-banner.err{background:#FCEBEB;color:#A32D2D;}
+    .server-banner.checking{background:var(--bg3);color:var(--text2);}
+    @media(prefers-color-scheme:dark){
+      .server-banner.ok{background:#173404;color:#97C459;}
+      .server-banner.err{background:#501313;color:#F09595;}
+    }
+
+    /* params */
+    .params-grid{display:flex;flex-direction:column;gap:5px;}
+    .param-row{display:flex;justify-content:space-between;align-items:center;padding:5px 10px;background:var(--bg);border-radius:var(--radius-s);border:0.5px solid var(--border);}
+    .param-row span:first-child{font-size:12px;color:var(--text2);}
+    .param-val{font-family:var(--mono);font-size:12px;color:var(--text);font-weight:700;}
+
+    /* algorithm cards */
+    .alg-cards{display:flex;flex-direction:column;gap:5px;}
+    .alg-card{
+      border:0.5px solid var(--border);border-radius:var(--radius-s);padding:8px 10px;
+      cursor:pointer;transition:all 0.12s;background:var(--bg);
+      display:flex;align-items:center;gap:8px;
+    }
+    .alg-card:hover{border-color:var(--border2);}
+    .alg-card.selected{border-color:var(--accent);background:var(--accent-l);}
+    .alg-checkbox{
+      width:14px;height:14px;border-radius:3px;border:1.5px solid var(--border2);
+      flex-shrink:0;display:flex;align-items:center;justify-content:center;
+      transition:all 0.12s;
+    }
+    .alg-card.selected .alg-checkbox{border-color:var(--accent);background:var(--accent);}
+    .alg-card.selected .alg-checkbox::after{content:'✓';font-size:9px;color:white;font-weight:700;}
+    .alg-badge{
+      font-family:var(--mono);font-size:9px;font-weight:700;
+      padding:2px 6px;border-radius:4px;flex-shrink:0;
+    }
+    .alg-info{flex:1;}
+    .alg-name{font-size:11px;font-weight:500;color:var(--text);}
+    .alg-desc{font-size:10px;color:var(--text2);margin-top:1px;}
+    .alg-card.selected .alg-name{color:var(--accent);}
+    .alg-card.warn-heavy{border-color:#BA7517;}
+    .alg-warning{font-size:10px;color:#BA7517;margin-top:2px;}
+
+    /* extra params */
+    .extra-param{display:flex;align-items:center;gap:8px;margin-top:4px;padding:5px 8px;background:var(--bg2);border-radius:var(--radius-s);}
+    .extra-param label{font-size:11px;color:var(--text2);flex:1;}
+    .extra-param input{width:70px;padding:4px 8px;font-family:var(--mono);font-size:11px;text-align:center;border:0.5px solid var(--border2);border-radius:var(--radius-s);background:var(--bg);color:var(--text);outline:none;}
+    .extra-param input:focus{border-color:var(--accent);}
+
+    /* runs input */
+    .runs-wrap{display:flex;align-items:center;gap:8px;padding:6px 8px;background:var(--bg);border-radius:var(--radius-s);border:0.5px solid var(--border);}
+    .runs-wrap label{font-size:12px;color:var(--text2);flex:1;}
+    .runs-wrap input{width:70px;padding:4px 8px;font-family:var(--mono);font-size:12px;text-align:center;border:0.5px solid var(--border2);border-radius:var(--radius-s);background:var(--bg2);color:var(--text);outline:none;}
+    .runs-wrap input:focus{border-color:var(--accent);}
+
+    /* run button */
+    .run-btn{width:100%;padding:10px;font-family:var(--mono);font-size:13px;font-weight:700;background:var(--accent);color:white;border:none;border-radius:var(--radius-s);cursor:pointer;transition:all 0.15s;letter-spacing:0.5px;}
+    .run-btn:hover:not(:disabled){background:#0C447C;}
+    .run-btn:active:not(:disabled){transform:scale(0.98);}
+    .run-btn:disabled{background:var(--bg3);color:var(--text3);cursor:not-allowed;}
+    .progress-bar-wrap{height:3px;background:var(--border);border-radius:2px;overflow:hidden;margin-top:7px;}
+    .progress-bar{height:100%;background:var(--accent);border-radius:2px;transition:width 0.3s ease;width:0%;}
+
+    /* content */
+    .content{display:flex;flex-direction:column;overflow:hidden;}
+    .tabs{display:flex;border-bottom:0.5px solid var(--border);padding:0 1.5rem;background:var(--bg);}
+    .tab{font-size:13px;color:var(--text2);padding:10px 14px;cursor:pointer;border-bottom:2px solid transparent;transition:all 0.12s;margin-bottom:-0.5px;white-space:nowrap;}
+    .tab:hover{color:var(--text);}
+    .tab.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:500;}
+    .panel{padding:1.5rem;flex:1;display:none;overflow-y:auto;flex-direction:column;gap:1.25rem;}
+    .panel.active{display:flex;}
+
+    /* comparison table */
+    .cmp-table{width:100%;border-collapse:collapse;font-size:12px;}
+    .cmp-table th{padding:8px 12px;text-align:left;font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px;border-bottom:0.5px solid var(--border);}
+    .cmp-table td{padding:10px 12px;border-bottom:0.5px solid var(--border);vertical-align:top;}
+    .cmp-table tr:last-child td{border-bottom:none;}
+    .cmp-table tr:hover td{background:var(--bg2);}
+    .cmp-table .mono{font-family:var(--mono);font-weight:700;}
+    .cmp-table .best-row td{background:var(--accent-l) !important;}
+    .cmp-table .best-row .mono{color:var(--accent);}
+    .winner-badge{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;background:var(--accent-l);color:var(--accent);font-family:var(--mono);}
+
+    /* bar comparison */
+    .bar-cmp{display:flex;flex-direction:column;gap:8px;}
+    .bar-cmp-row{display:flex;align-items:center;gap:10px;}
+    .bar-cmp-label{width:160px;font-size:11px;color:var(--text2);flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    .bar-cmp-track{flex:1;height:20px;background:var(--bg3);border-radius:4px;overflow:hidden;position:relative;}
+    .bar-cmp-fill{height:100%;border-radius:4px;transition:width 0.5s ease;display:flex;align-items:center;padding-left:8px;}
+    .bar-cmp-val{font-family:var(--mono);font-size:10px;font-weight:700;color:white;white-space:nowrap;}
+    .bar-cmp-pct{width:50px;text-align:right;font-family:var(--mono);font-size:11px;color:var(--text3);}
+
+    /* chart area */
+    .chart-area{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius);padding:1.25rem;}
+    .chart-title{font-size:12px;font-weight:500;color:var(--text2);margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;}
+    .chart-legend{display:flex;gap:12px;flex-wrap:wrap;}
+    .chart-legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2);}
+    .legend-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+
+    /* multi-run dist chart */
+    .dist-chart{display:flex;align-items:flex-end;gap:2px;height:80px;}
+    .dist-bar{flex:1;border-radius:3px 3px 0 0;min-height:2px;position:relative;cursor:pointer;}
+    .dist-bar:hover::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 4px);left:50%;transform:translateX(-50%);background:var(--text);color:var(--bg);font-size:10px;font-family:var(--mono);padding:3px 7px;border-radius:4px;white-space:nowrap;z-index:10;}
+
+    /* metrics */
+    .metrics-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;}
+    .metric-card{background:var(--bg2);border-radius:var(--radius-s);padding:12px 14px;}
+    .metric-label{font-size:11px;color:var(--text3);margin-bottom:4px;}
+    .metric-val{font-family:var(--mono);font-size:20px;font-weight:700;color:var(--text);}
+    .metric-val.highlight{color:var(--accent);}
+    .metric-sub{font-size:11px;color:var(--text3);margin-top:2px;}
+
+    /* per-algo result card */
+    .algo-result-card{background:var(--bg2);border-radius:var(--radius);border:0.5px solid var(--border);padding:1rem 1.25rem;position:relative;overflow:hidden;}
+    .algo-result-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;}
+    .algo-result-card.alg1::before{background:var(--alg1);}
+    .algo-result-card.alg2::before{background:var(--alg2);}
+    .algo-result-card.alg3::before{background:var(--alg3);}
+    .algo-result-card.alg4::before{background:var(--alg4);}
+    .arc-header{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+    .arc-title{font-size:13px;font-weight:500;}
+    .arc-body{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px;}
+    .arc-stat{background:var(--bg);border-radius:var(--radius-s);padding:8px 10px;}
+    .arc-stat-label{font-size:10px;color:var(--text3);margin-bottom:3px;}
+    .arc-stat-val{font-family:var(--mono);font-size:15px;font-weight:700;}
+    .arc-dist-section{margin-top:10px;}
+    .arc-dist-label{font-size:11px;color:var(--text2);margin-bottom:6px;}
+
+    /* stats */
+    .stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;}
+    .stat-box{background:var(--bg2);border-radius:var(--radius-s);padding:12px 14px;}
+    .stat-box-label{font-size:11px;color:var(--text2);margin-bottom:8px;display:flex;align-items:center;gap:6px;}
+    .mini-list{display:flex;flex-direction:column;gap:2px;}
+    .mini-row{display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:0.5px solid var(--border);}
+    .mini-row:last-child{border-bottom:none;}
+    .mini-row span:last-child{font-family:var(--mono);font-weight:500;}
+
+    /* log */
+    .log-area{background:#042C53;border-radius:var(--radius);padding:1rem 1.25rem;font-family:var(--mono);font-size:11px;line-height:1.8;color:#85B7EB;flex:1;overflow-y:auto;}
+    .log-line{display:flex;gap:10px;}
+    .log-time{color:#378ADD;flex-shrink:0;}
+    .log-ok{color:#97C459;} .log-warn{color:#EF9F27;} .log-info{color:#5DCAA5;}
+
+    /* empty state */
+    .empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;gap:8px;padding:3rem;text-align:center;}
+    .empty-icon{width:46px;height:46px;background:var(--bg2);border-radius:50%;display:flex;align-items:center;justify-content:center;border:0.5px solid var(--border);margin-bottom:4px;}
+    .empty-state h3{font-size:14px;font-weight:500;}
+    .empty-state p{font-size:12px;color:var(--text2);max-width:260px;}
+
+    /* section sep */
+    .section-title{font-size:12px;font-weight:600;color:var(--text);margin-bottom:6px;}
+
+    @media(max-width:720px){
+      .main{grid-template-columns:1fr;}
+      .sidebar{border-right:none;border-bottom:0.5px solid var(--border);max-height:50vh;}
+      .metrics-row{grid-template-columns:repeat(2,1fr);}
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <div class="header">
+    <div>
+      <h1>Ride Scheduler — Comparação</h1>
+      <p>HashCode — project1_IA.py · 4 algoritmos</p>
+    </div>
+    <span class="pill pill-blue" id="status-pill"><span class="dot dot-blue"></span> pronto</span>
+  </div>
+
+  <div class="main">
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+
+      <!-- Server status -->
+      <div>
+        <div class="section-label">servidor</div>
+        <div class="server-banner checking" id="server-banner">
+          <span id="server-dot" class="dot dot-amber"></span>
+          <span id="server-msg">a verificar...</span>
+        </div>
+      </div>
+
+      <!-- File selector -->
+      <div>
+        <div class="section-label">ficheiro de entrada</div>
+        <div class="file-select-wrap" id="file-list">
+          <div style="font-size:11px;color:var(--text3);text-align:center;padding:8px;">a carregar lista...</div>
+        </div>
+        <div class="or-divider" style="margin-top:8px;">ou</div>
+        <label class="file-upload-label" style="margin-top:8px;">
+          <input type="file" id="file-input" accept=".in,.txt" />
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+          carregar ficheiro local
+        </label>
+        <p id="file-name" style="font-size:11px;color:var(--text3);margin-top:6px;text-align:center;"></p>
+      </div>
+
+      <!-- Params -->
+      <div>
+        <div class="section-label">parâmetros</div>
+        <div class="params-grid">
+          <div class="param-row"><span>Grid R×C</span><span class="param-val" id="p-grid">—</span></div>
+          <div class="param-row"><span>Veículos (F)</span><span class="param-val" id="p-f">—</span></div>
+          <div class="param-row"><span>Corridas (N)</span><span class="param-val" id="p-n">—</span></div>
+          <div class="param-row"><span>Bónus (B)</span><span class="param-val" id="p-b">—</span></div>
+          <div class="param-row"><span>Passos (T)</span><span class="param-val" id="p-t">—</span></div>
+        </div>
+      </div>
+
+      <!-- Algorithm selection -->
+      <div>
+        <div class="section-label">algoritmos a comparar</div>
+        <div class="alg-cards">
+          <div class="alg-card selected" id="alg-card-1" onclick="toggleAlg(1)">
+            <div class="alg-checkbox"></div>
+            <span class="alg-badge" style="background:var(--alg1-l);color:var(--alg1);">G1</span>
+            <div class="alg-info">
+              <div class="alg-name">Greedy (melhor corrida/veículo)</div>
+              <div class="alg-desc">Abordagem local, distribuição equilibrada</div>
+            </div>
+          </div>
+          <div class="alg-card selected" id="alg-card-2" onclick="toggleAlg(2)">
+            <div class="alg-checkbox"></div>
+            <span class="alg-badge" style="background:var(--alg2-l);color:var(--alg2);">G2</span>
+            <div class="alg-info">
+              <div class="alg-name">Greedy (melhor veículo/corrida)</div>
+              <div class="alg-desc">Seleção global, tende a concentrar corridas</div>
+            </div>
+          </div>
+          <div id="astar-extra" style="display:none;">
+            <div class="extra-param">
+              <label>Peso A* (w):</label>
+              <input type="number" id="astar-weight" value="5" min="1" max="100" />
+            </div>
+          </div>
+          <div class="alg-card" id="alg-card-4" onclick="toggleAlg(4)">
+            <div class="alg-checkbox"></div>
+            <span class="alg-badge" style="background:var(--alg4-l);color:var(--alg4);">BS</span>
+            <div class="alg-info">
+              <div class="alg-name">Beam Search</div>
+              <div class="alg-desc">Exploração em feixe, largura configurável</div>
+              <div class="alg-warning" id="beam-warn" style="display:none;">⚠ Dataset grande — pode ser lento</div>
+            </div>
+          </div>
+          <div id="beam-extra" style="display:none;">
+            <div class="extra-param">
+              <label>Largura do feixe:</label>
+              <input type="number" id="beam-width" value="3" min="1" max="50" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Nº de execuções -->
+      <div>
+        <div class="section-label">execuções por algoritmo</div>
+        <div class="runs-wrap">
+          <label>Nº de execuções:</label>
+          <input type="number" id="n-runs" value="5" min="1" max="200" />
+        </div>
+        <p style="font-size:10px;color:var(--text3);margin-top:5px;">Cada algoritmo é executado N vezes. Média e variância são calculadas.</p>
+      </div>
+
+      <div style="margin-top:auto;">
+        <button class="run-btn" id="run-btn" onclick="runComparison()" disabled>▶ COMPARAR ALGORITMOS</button>
+        <div class="progress-bar-wrap"><div class="progress-bar" id="progress-bar"></div></div>
+        <div id="progress-label" style="font-size:10px;color:var(--text3);text-align:center;margin-top:4px;font-family:var(--mono);height:14px;"></div>
+      </div>
+
+    </div>
+
+    <!-- Content -->
+    <div class="content">
+      <div class="tabs">
+        <div class="tab active" onclick="showTab('compare')">Comparação</div>
+        <div class="tab" onclick="showTab('detail')">Detalhe por algoritmo</div>
+        <div class="tab" onclick="showTab('log')">Log</div>
+      </div>
+
+      <!-- Comparison tab -->
+      <div class="panel active" id="panel-compare">
+        <div id="compare-empty" class="empty-state">
+          <div class="empty-icon">
+            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+          </div>
+          <h3>Sem dados de comparação</h3>
+          <p>Seleciona pelo menos um algoritmo, carrega um ficheiro e clica em Comparar.</p>
+        </div>
+        <div id="compare-results" style="display:none;flex-direction:column;gap:1.25rem;">
+
+          <!-- Summary metrics -->
+          <div>
+            <div class="section-title">Sumário</div>
+            <div class="metrics-row" id="summary-metrics"></div>
+          </div>
+
+          <!-- Score bar chart comparison -->
+          <div class="chart-area">
+            <div class="chart-title">
+              <span>Pontuação média por algoritmo</span>
+              <div class="chart-legend" id="score-legend"></div>
+            </div>
+            <div class="bar-cmp" id="score-bars"></div>
+          </div>
+
+          <!-- Time comparison -->
+          <div class="chart-area">
+            <div class="chart-title">
+              <span>Tempo médio de execução (segundos)</span>
+            </div>
+            <div class="bar-cmp" id="time-bars"></div>
+          </div>
+
+          <!-- Ranking table -->
+          <div class="chart-area">
+            <div class="chart-title"><span>Tabela de classificação</span></div>
+            <table class="cmp-table" id="ranking-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Algoritmo</th>
+                  <th>Melhor</th>
+                  <th>Média</th>
+                  <th>Mín</th>
+                  <th>σ</th>
+                  <th>Corridas</th>
+                  <th>Tempo</th>
+                </tr>
+              </thead>
+              <tbody id="ranking-body"></tbody>
+            </table>
+          </div>
+
+          <!-- Score distribution multi-run -->
+          <div class="chart-area" id="dist-section" style="display:none;">
+            <div class="chart-title"><span>Distribuição de pontuações por execução</span></div>
+            <div id="dist-charts" style="display:flex;flex-direction:column;gap:14px;"></div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Detail tab -->
+      <div class="panel" id="panel-detail">
+        <div id="detail-empty" class="empty-state">
+          <div class="empty-icon">
+            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+          </div>
+          <h3>Sem dados</h3>
+          <p>Corre a comparação para ver o detalhe de cada algoritmo.</p>
+        </div>
+        <div id="detail-results" style="display:none;flex-direction:column;gap:1rem;"></div>
+      </div>
+
+      <!-- Log -->
+      <div class="panel" id="panel-log">
+        <div class="section-label">output — project1_IA.py via Flask</div>
+        <div class="log-area" id="log-area">
+          <div class="log-line"><span class="log-time">00:00</span><span class="log-info">a inicializar — a verificar servidor em localhost:5000</span></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+  const API = 'http://localhost:5000';
+  let simData = null;
+  let selectedFile = null;
+  let selectedContent = null;
+  let selectedAlgs = new Set([1, 2]);
+  let comparisonResults = [];
+  let isHeavyFile = false;
+
+  const ALG_META = {
+    1: { name:'Greedy (melhor corrida/veículo)', short:'G1', cls:'alg1', color:'#185FA5' },
+    2: { name:'Greedy (melhor veículo/corrida)', short:'G2', cls:'alg2', color:'#3B6D11' },
+    3: { name:'Weighted A*',                     short:'A*', cls:'alg3', color:'#854F0B' },
+    4: { name:'Beam Search',                     short:'BS', cls:'alg4', color:'#7F77DD' },
+  };
+
+  /* ── Log ── */
+  function log(msg, type='info') {
+    const now = new Date();
+    const t = String(now.getMinutes()).padStart(2,'0')+':'+String(now.getSeconds()).padStart(2,'0');
+    const el = document.getElementById('log-area');
+    const cls = type==='ok'?'log-ok':type==='warn'?'log-warn':'log-info';
+    const line = document.createElement('div');
+    line.className = 'log-line';
+    line.innerHTML = `<span class="log-time">${t}</span><span class="${cls}">${msg}</span>`;
+    el.appendChild(line);
+    el.scrollTop = el.scrollHeight;
+  }
+
+  /* ── Server check ── */
+  async function checkServer() {
+    const banner = document.getElementById('server-banner');
+    const msg = document.getElementById('server-msg');
+    try {
+      const r = await fetch(`${API}/inputs`, { signal: AbortSignal.timeout(2000) });
+      if (r.ok) {
+        banner.className = 'server-banner ok';
+        banner.querySelector('.dot').className = 'dot dot-green';
+        msg.textContent = 'servidor ativo — localhost:5000';
+        log('servidor Flask ativo em localhost:5000', 'ok');
+        loadInputList();
+        return true;
+      }
+    } catch {}
+    banner.className = 'server-banner err';
+    banner.querySelector('.dot').className = 'dot dot-red';
+    msg.textContent = 'servidor offline — corre: python server.py';
+    log('servidor não encontrado. Corre: python server.py', 'warn');
+    return false;
+  }
+
+  /* ── Load input file list ── */
+  async function loadInputList() {
+    try {
+      const r = await fetch(`${API}/inputs`);
+      const files = await r.json();
+      const wrap = document.getElementById('file-list');
+      if (!files.length) { wrap.innerHTML = '<div style="font-size:11px;color:var(--text3);text-align:center;padding:8px;">sem ficheiros em inputs/</div>'; return; }
+      wrap.innerHTML = files.map(f => `
+        <div class="file-select-btn" onclick="selectServerFile('${f}', this)">
+          <span class="file-ext">.IN</span>
+          <span class="file-name">${f}</span>
+        </div>`).join('');
+    } catch {
+      document.getElementById('file-list').innerHTML = '<div style="font-size:11px;color:var(--text3);text-align:center;padding:8px;">servidor offline</div>';
+    }
+  }
+
+  async function selectServerFile(filename, el) {
+    document.querySelectorAll('.file-select-btn').forEach(b => b.classList.remove('active'));
+    el.classList.add('active');
+    try {
+      const r = await fetch(`${API}/inputs/${filename}`);
+      selectedContent = await r.text();
+      selectedFile = filename;
+      parseAndShowParams(selectedContent);
+      document.getElementById('file-name').textContent = filename;
+      document.getElementById('run-btn').disabled = false;
+      setStatus('ficheiro carregado', 'ok');
+      log(`ficheiro '${filename}' carregado do servidor`, 'ok');
+    } catch (e) {
+      log('erro ao carregar ficheiro: ' + e.message, 'warn');
+    }
+  }
+
+  /* ── Parse params ── */
+  function parseAndShowParams(content) {
+    const lines = content.trim().split('\n');
+    const [R,C,F,N,B,T] = lines[0].trim().split(/\s+/).map(Number);
+    simData = { params:{R,C,F,N,B,T} };
+    isHeavyFile = (N * F > 20000) || (N > 1500);
+
+    document.getElementById('p-grid').textContent = `${R}×${C}`;
+    document.getElementById('p-f').textContent = F;
+    document.getElementById('p-n').textContent = N;
+    document.getElementById('p-b').textContent = B;
+    document.getElementById('p-t').textContent = T.toLocaleString();
+
+    document.getElementById('astar-warn').style.display = isHeavyFile ? 'block' : 'none';
+    document.getElementById('beam-warn').style.display  = isHeavyFile ? 'block' : 'none';
+  }
+
+  /* ── UI helpers ── */
+  function toggleAlg(id) {
+    if (selectedAlgs.has(id)) {
+      selectedAlgs.delete(id);
+      document.getElementById(`alg-card-${id}`).classList.remove('selected');
+    } else {
+      selectedAlgs.add(id);
+      document.getElementById(`alg-card-${id}`).classList.add('selected');
+    }
+    // Show/hide extra params
+    document.getElementById('astar-extra').style.display = selectedAlgs.has(3) ? 'block' : 'none';
+    document.getElementById('beam-extra').style.display  = selectedAlgs.has(4) ? 'block' : 'none';
+  }
+
+  function showTab(id) {
+    const ids = ['compare','detail','log'];
+    document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', ids[i]===id));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('panel-'+id).classList.add('active');
+  }
+
+  function setStatus(text, type) {
+    const el = document.getElementById('status-pill');
+    const cls = type==='ok'?'green':type==='busy'?'amber':'blue';
+    el.className = `pill pill-${cls}`;
+    el.innerHTML = `<span class="dot dot-${cls}"></span> ${text}`;
+  }
+
+  function setProgress(pct, label='') {
+    document.getElementById('progress-bar').style.width = pct + '%';
+    document.getElementById('progress-label').textContent = label;
+  }
+
+  /* ── Run comparison ── */
+  async function runComparison() {
+    if (!selectedContent || selectedAlgs.size === 0) return;
+
+    const nRuns    = Math.max(1, parseInt(document.getElementById('n-runs').value) || 5);
+    const aWeight  = Math.max(1, parseInt(document.getElementById('astar-weight').value) || 5);
+    const bWidth   = Math.max(1, parseInt(document.getElementById('beam-width').value) || 3);
+    const algsArr  = Array.from(selectedAlgs).sort();
+
+    document.getElementById('run-btn').disabled = true;
+    setStatus('a comparar', 'busy');
+    comparisonResults = [];
+    log(`▶ a comparar ${algsArr.length} algoritmo(s) × ${nRuns} execuções cada...`);
+
+    for (let i = 0; i < algsArr.length; i++) {
+      const alg = algsArr[i];
+      const meta = ALG_META[alg];
+      setProgress(Math.round((i / algsArr.length) * 90), `${meta.short}: a executar...`);
+      log(`→ ${meta.name} (${nRuns} runs)...`);
+
+      try {
+        const body = {
+          content: selectedContent,
+          n_runs: nRuns,
+          algorithm: alg,
+        };
+        if (alg === 3) body.weight = aWeight;
+        if (alg === 4) body.beam_width = bWidth;
+
+        const resp = await fetch(`${API}/run`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const data = await resp.json();
+
+        comparisonResults.push({ alg, meta, data });
+        log(`  ✓ ${meta.short} — melhor: ${data.best.score.toLocaleString()}, média: ${Math.round(data.avg).toLocaleString()}, tempo: ${data.time ? data.time.toFixed(2)+'s' : '—'}`, 'ok');
+      } catch (e) {
+        log(`  ✗ ${meta.short} — erro: ${e.message}`, 'warn');
+        // Push placeholder so we still show the algo in tables
+        comparisonResults.push({ alg, meta, data: null, error: e.message });
+      }
+    }
+
+    setProgress(100, 'concluído');
+    setTimeout(() => setProgress(0, ''), 1500);
+    setStatus('concluído', 'ok');
+    document.getElementById('run-btn').disabled = false;
+
+    if (comparisonResults.some(r => r.data)) {
+      renderComparison();
+      renderDetail();
+    }
+  }
+
+  /* ── Render Comparison tab ── */
+  function renderComparison() {
+    document.getElementById('compare-empty').style.display = 'none';
+    const wrap = document.getElementById('compare-results');
+    wrap.style.display = 'flex';
+
+    const valid = comparisonResults.filter(r => r.data);
+    if (!valid.length) return;
+
+    // Sort by best score descending
+    const sorted = [...valid].sort((a,b) => b.data.best.score - a.data.best.score);
+    const topScore = sorted[0].data.best.score;
+    const maxAvg   = Math.max(...valid.map(r => r.data.avg));
+    const maxTime  = Math.max(...valid.map(r => r.data.time || 0), 0.001);
+
+    // Summary metrics
+    const metricsEl = document.getElementById('summary-metrics');
+    const nRuns = valid[0].data.scores.length;
+    metricsEl.innerHTML = `
+      <div class="metric-card"><div class="metric-label">Melhor pontuação global</div><div class="metric-val highlight">${topScore.toLocaleString()}</div><div class="metric-sub">${sorted[0].meta.name}</div></div>
+      <div class="metric-card"><div class="metric-label">Algoritmos comparados</div><div class="metric-val">${valid.length}</div><div class="metric-sub">de ${comparisonResults.length} selecionados</div></div>
+      <div class="metric-card"><div class="metric-label">Execuções por algoritmo</div><div class="metric-val">${nRuns}</div><div class="metric-sub">total: ${nRuns * valid.length} runs</div></div>
+      <div class="metric-card"><div class="metric-label">Corridas (dataset)</div><div class="metric-val">${simData ? simData.params.N.toLocaleString() : '—'}</div><div class="metric-sub">veículos: ${simData ? simData.params.F : '—'}</div></div>
+    `;
+
+    // Legend
+    document.getElementById('score-legend').innerHTML = valid.map(r =>
+      `<div class="chart-legend-item"><span class="legend-dot" style="background:${r.meta.color}"></span>${r.meta.short}</div>`
+    ).join('');
+
+    // Score bars
+    document.getElementById('score-bars').innerHTML = sorted.map(r => {
+      const pct = Math.round((r.data.avg / maxAvg) * 100);
+      return `<div class="bar-cmp-row">
+        <div class="bar-cmp-label" title="${r.meta.name}">${r.meta.short} — ${r.meta.name.split('(')[0].trim()}</div>
+        <div class="bar-cmp-track">
+          <div class="bar-cmp-fill" style="width:${pct}%;background:${r.meta.color};">
+            <span class="bar-cmp-val">${Math.round(r.data.avg).toLocaleString()}</span>
+          </div>
+        </div>
+        <div class="bar-cmp-pct">${pct}%</div>
+      </div>`;
+    }).join('');
+
+    // Time bars
+    const validTime = valid.filter(r => r.data.time != null);
+    if (validTime.length > 0) {
+      const sortedByTime = [...validTime].sort((a,b) => a.data.time - b.data.time);
+      document.getElementById('time-bars').innerHTML = sortedByTime.map(r => {
+        const pct = Math.round((r.data.time / maxTime) * 100);
+        return `<div class="bar-cmp-row">
+          <div class="bar-cmp-label" title="${r.meta.name}">${r.meta.short} — ${r.meta.name.split('(')[0].trim()}</div>
+          <div class="bar-cmp-track">
+            <div class="bar-cmp-fill" style="width:${Math.max(pct,3)}%;background:${r.meta.color};">
+              <span class="bar-cmp-val">${r.data.time.toFixed(2)}s</span>
+            </div>
+          </div>
+          <div class="bar-cmp-pct">${pct}%</div>
+        </div>`;
+      }).join('');
+    } else {
+      document.getElementById('time-bars').innerHTML = '<div style="font-size:12px;color:var(--text3);">Dados de tempo não disponíveis — actualiza o server.py para incluir o campo "time".</div>';
+    }
+
+    // Ranking table
+    document.getElementById('ranking-body').innerHTML = sorted.map((r, idx) => {
+      const d = r.data;
+      const isTop = idx === 0;
+      const assigned = d.best.assigned ?? '—';
+      const total    = simData?.params?.N ?? '?';
+      const pctA     = total !== '?' ? Math.round(assigned/total*100)+'%' : '—';
+      return `<tr class="${isTop ? 'best-row' : ''}">
+        <td><span style="font-family:var(--mono);font-size:12px;font-weight:700;color:var(--text3);">${idx+1}</span>${isTop ? ' <span class="winner-badge">🏆 melhor</span>' : ''}</td>
+        <td>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <span class="alg-badge" style="background:${r.meta.color}22;color:${r.meta.color};font-size:9px;font-family:var(--mono);font-weight:700;padding:2px 6px;border-radius:4px;">${r.meta.short}</span>
+            <span style="font-size:12px;">${r.meta.name}</span>
+          </div>
+        </td>
+        <td class="mono" style="color:${r.meta.color};">${d.best.score.toLocaleString()}</td>
+        <td class="mono">${Math.round(d.avg).toLocaleString()}</td>
+        <td class="mono">${d.min?.toLocaleString() ?? d.best.score.toLocaleString()}</td>
+        <td class="mono">${d.scores.length > 1 ? Math.round(d.std).toLocaleString() : '—'}</td>
+        <td><span class="mono">${assigned.toLocaleString()}</span> <span style="font-size:10px;color:var(--text3);">/ ${total} (${pctA})</span></td>
+        <td class="mono">${d.time != null ? d.time.toFixed(2)+'s' : '—'}</td>
+      </tr>`;
+    }).join('') +
+    comparisonResults.filter(r => !r.data).map(r => `
+      <tr><td colspan="8" style="color:#A32D2D;font-size:12px;padding:8px 12px;">
+        <span class="alg-badge" style="background:#FCEBEB;color:#A32D2D;font-size:9px;font-family:var(--mono);font-weight:700;padding:2px 6px;border-radius:4px;">${r.meta.short}</span>
+        ${r.meta.name} — erro: ${r.error}
+      </td></tr>`).join('');
+
+    // Distribution charts (only if n_runs > 1)
+    if (nRuns > 1) {
+      document.getElementById('dist-section').style.display = 'block';
+      document.getElementById('dist-charts').innerHTML = valid.map(r => {
+        const scores = r.data.scores;
+        const maxS   = Math.max(...scores);
+        const bars   = scores.map((s,i) => {
+          const h = Math.max(4, Math.round((s/maxS)*70));
+          return `<div class="dist-bar" style="height:${h}px;background:${r.meta.color};opacity:${s===maxS?1:0.5};" data-tip="Run ${i+1}: ${s.toLocaleString()}"></div>`;
+        }).join('');
+        return `<div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+            <span class="alg-badge" style="background:${r.meta.color}22;color:${r.meta.color};font-size:9px;font-family:var(--mono);font-weight:700;padding:2px 6px;border-radius:4px;">${r.meta.short}</span>
+            <span style="font-size:11px;color:var(--text2);">${r.meta.name} · mín ${r.data.min?.toLocaleString()} · máx ${r.data.max?.toLocaleString()} · σ ${Math.round(r.data.std)}</span>
+          </div>
+          <div class="dist-chart">${bars}</div>
+        </div>`;
+      }).join('');
+    } else {
+      document.getElementById('dist-section').style.display = 'none';
+    }
+  }
+
+  /* ── Render Detail tab ── */
+  function renderDetail() {
+    document.getElementById('detail-empty').style.display = 'none';
+    const wrap = document.getElementById('detail-results');
+    wrap.style.display = 'flex';
+
+    const valid = comparisonResults.filter(r => r.data);
+    const sorted = [...valid].sort((a,b) => b.data.best.score - a.data.best.score);
+
+    wrap.innerHTML = sorted.map(r => {
+      const d = r.data;
+      const N = simData?.params?.N || 1;
+      const theorMax = d.theoretical_max || null;
+      const assigned = d.best.assigned ?? '—';
+      const activeV  = d.best.vehicles ? d.best.vehicles.filter(v => v.n_rides > 0).length : '—';
+      const totalV   = simData?.params?.F || '?';
+
+      // Vehicle distribution buckets
+      let distHtml = '';
+      if (d.best.vehicles) {
+        const buckets = {'0':0,'1–5':0,'6–10':0,'11+':0};
+        d.best.vehicles.forEach(v => {
+          const n = v.n_rides;
+          if(n===0) buckets['0']++;
+          else if(n<=5) buckets['1–5']++;
+          else if(n<=10) buckets['6–10']++;
+          else buckets['11+']++;
+        });
+        distHtml = `<div class="arc-dist-section">
+          <div class="arc-dist-label">Distribuição corridas/veículo (melhor run)</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            ${Object.entries(buckets).map(([k,v]) => `<div class="arc-stat" style="min-width:80px;"><div class="arc-stat-label">${k} corridas</div><div class="arc-stat-val">${v}</div></div>`).join('')}
+          </div>
+        </div>`;
+      }
+
+      const normScore = theorMax ? (d.best.score / theorMax).toFixed(4) : '—';
+      const normAvg   = theorMax ? (d.avg / theorMax).toFixed(4) : '—';
+
+      return `<div class="algo-result-card ${r.meta.cls}">
+        <div class="arc-header">
+          <span class="alg-badge" style="background:${r.meta.color}22;color:${r.meta.color};font-size:10px;font-family:var(--mono);font-weight:700;padding:3px 8px;border-radius:5px;">${r.meta.short}</span>
+          <span class="arc-title">${r.meta.name}</span>
+          ${d.time != null ? `<span class="pill" style="background:var(--bg3);color:var(--text2);margin-left:auto;">${d.time.toFixed(2)}s</span>` : ''}
+        </div>
+        <div class="arc-body">
+          <div class="arc-stat"><div class="arc-stat-label">Melhor pontuação</div><div class="arc-stat-val" style="color:${r.meta.color};">${d.best.score.toLocaleString()}</div></div>
+          <div class="arc-stat"><div class="arc-stat-label">Média</div><div class="arc-stat-val">${Math.round(d.avg).toLocaleString()}</div></div>
+          <div class="arc-stat"><div class="arc-stat-label">Mínimo</div><div class="arc-stat-val">${(d.min ?? d.best.score).toLocaleString()}</div></div>
+          <div class="arc-stat"><div class="arc-stat-label">Máximo</div><div class="arc-stat-val">${(d.max ?? d.best.score).toLocaleString()}</div></div>
+          <div class="arc-stat"><div class="arc-stat-label">Std Dev (σ)</div><div class="arc-stat-val">${d.scores.length > 1 ? Math.round(d.std).toLocaleString() : '—'}</div></div>
+          <div class="arc-stat"><div class="arc-stat-label">Score normalizado</div><div class="arc-stat-val" style="font-size:13px;">${normScore}</div></div>
+          <div class="arc-stat"><div class="arc-stat-label">Média normalizada</div><div class="arc-stat-val" style="font-size:13px;">${normAvg}</div></div>
+          <div class="arc-stat"><div class="arc-stat-label">Corridas atribuídas</div><div class="arc-stat-val">${typeof assigned === 'number' ? assigned.toLocaleString() : assigned}</div></div>
+          <div class="arc-stat"><div class="arc-stat-label">Veículos ativos</div><div class="arc-stat-val">${activeV} <span style="font-size:11px;color:var(--text3);">/ ${totalV}</span></div></div>
+        </div>
+        ${distHtml}
+      </div>`;
+    }).join('') + comparisonResults.filter(r => !r.data).map(r => `
+      <div class="algo-result-card" style="border-color:#A32D2D;opacity:0.7;">
+        <div class="arc-header">
+          <span class="alg-badge" style="background:#FCEBEB;color:#A32D2D;font-size:10px;font-family:var(--mono);font-weight:700;padding:3px 8px;border-radius:5px;">${r.meta.short}</span>
+          <span class="arc-title">${r.meta.name}</span>
+          <span class="pill pill-red" style="margin-left:auto;">erro</span>
+        </div>
+        <p style="font-size:12px;color:#A32D2D;">${r.error}</p>
+      </div>`).join('');
+  }
+
+  /* ── File upload (local) ── */
+  document.getElementById('file-input').addEventListener('change', function(e) {
+    const file = e.target.files[0]; if(!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try {
+        selectedContent = ev.target.result;
+        selectedFile = file.name;
+        parseAndShowParams(selectedContent);
+        document.getElementById('file-name').textContent = file.name;
+        document.querySelectorAll('.file-select-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById('run-btn').disabled = false;
+        setStatus('ficheiro carregado', 'ok');
+        log(`ficheiro local '${file.name}' carregado`, 'ok');
+      } catch(err) { log('erro ao ler ficheiro: '+err.message, 'warn'); }
+    };
+    reader.readAsText(file);
+  });
+
+  /* ── Init ── */
+  checkServer();
+</script>
+</body>
+</html>

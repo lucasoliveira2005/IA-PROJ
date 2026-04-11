@@ -59,157 +59,157 @@ class HashCodeState:
 
 
 
-#---------MENU---------#
-# Extract data from Input data set
+# #---------MENU---------#
+# # Extract data from Input data set
 
-input_folder = "inputs"
+# input_folder = "inputs"
 
-# Get all files in the folder (checks if the path file contains the folder)
-files = [f for f in os.listdir(input_folder) if os.path.isfile(os.path.join(input_folder, f))]
+# # Get all files in the folder (checks if the path file contains the folder)
+# files = [f for f in os.listdir(input_folder) if os.path.isfile(os.path.join(input_folder, f))]
 
-# Show menu
-print("\nAvailable input files:")
-for i, file in enumerate(files):
-    print(f"{i + 1}. {file}")
+# # Show menu
+# print("\nAvailable input files:")
+# for i, file in enumerate(files):
+#     print(f"{i + 1}. {file}")
 
-# Choose file (also verifies if input is a number in the correct range)
-while True:
-    try:
-        choice = int(input("Select a file by number: ")) - 1
-        if 0 <= choice < len(files):
-            break
-        else:
-            print("Invalid number, try again.")
-    except ValueError:
-        print("Please enter a number.")
+# # Choose file (also verifies if input is a number in the correct range)
+# while True:
+#     try:
+#         choice = int(input("Select a file by number: ")) - 1
+#         if 0 <= choice < len(files):
+#             break
+#         else:
+#             print("Invalid number, try again.")
+#     except ValueError:
+#         print("Please enter a number.")
 
-# Get full path
-name_input = os.path.join(input_folder, files[choice])
+# # Get full path
+# name_input = os.path.join(input_folder, files[choice])
 
-print(f"\nSelected: {name_input}")
+# print(f"\nSelected: {name_input}")
 
-filename = os.path.basename(name_input) # gets only the name of the file, removing the path
-base, _ = os.path.splitext(filename) # removes the file extension
-name_output = os.path.join("outputs", base + ".out") # creates the output file, with correct path and file extension
+# filename = os.path.basename(name_input) # gets only the name of the file, removing the path
+# base, _ = os.path.splitext(filename) # removes the file extension
+# name_output = os.path.join("outputs", base + ".out") # creates the output file, with correct path and file extension
 
-# Opens and extracts file data
+# # Opens and extracts file data
 
-fh = open(name_input, "r")
-R, C, F, N, B, T = map(int, fh.readline().split())
+# fh = open(name_input, "r")
+# R, C, F, N, B, T = map(int, fh.readline().split())
 
-# Large number of rides makes exhaustive or tree-based search (A*, Beam)
-# computationally expensive or infeasible, so user should be warned.
-# The limits are arbitrary, but these are relatively safe options
-heavy_file = (N * F > 20000) or (N > 1500)
+# # Large number of rides makes exhaustive or tree-based search (A*, Beam)
+# # computationally expensive or infeasible, so user should be warned.
+# # The limits are arbitrary, but these are relatively safe options
+# heavy_file = (N * F > 20000) or (N > 1500)
 
-rides = []
-for i in range(N):
-    a, b, x, y, s, f = map(int, fh.readline().split())
-    rides.append(Ride(i, a, b, x, y, s, f))
+# rides = []
+# for i in range(N):
+#     a, b, x, y, s, f = map(int, fh.readline().split())
+#     rides.append(Ride(i, a, b, x, y, s, f))
 
-vehicles = [Vehicle(i) for i in range(F)]
+# vehicles = [Vehicle(i) for i in range(F)]
 
-fh.close()
+# fh.close()
 
 
-# Choose which algorithm to run the data set with
+# # Choose which algorithm to run the data set with
 
-print("\nAlgorithm to use:")
-print("1. Greedy Best-First-Search (Best ride per vehicle)")
-print("2. Greedy Best-First-Search (Best vehicle per ride)")
-print("3. Weighted A* search")
-print("4. Beam search")
+# print("\nAlgorithm to use:")
+# print("1. Greedy Best-First-Search (Best ride per vehicle)")
+# print("2. Greedy Best-First-Search (Best vehicle per ride)")
+# print("3. Weighted A* search")
+# print("4. Beam search")
 
-while True:
-    try:
-        alg = int(input("Choose algorithm to use: "))
-        if heavy_file and alg == 3:
-            print("\nWarning: This dataset is large.")
-            print("A* Search may take a very long time or be infeasible.")
+# while True:
+#     try:
+#         alg = int(input("Choose algorithm to use: "))
+#         if heavy_file and alg == 3:
+#             print("\nWarning: This dataset is large.")
+#             print("A* Search may take a very long time or be infeasible.")
             
-            # give user choice to cancel operation
-            confirm = input("Do you still want to continue? (y/n): ").lower()
-            if confirm != 'y':
-                print("Operation cancelled.")
-                sys.exit()
-            break
-        elif heavy_file and alg == 4:
-            print("\nWarning: This dataset is large.")
-            print("Beam Search may take a very long time or be infeasible.")
+#             # give user choice to cancel operation
+#             confirm = input("Do you still want to continue? (y/n): ").lower()
+#             if confirm != 'y':
+#                 print("Operation cancelled.")
+#                 sys.exit()
+#             break
+#         elif heavy_file and alg == 4:
+#             print("\nWarning: This dataset is large.")
+#             print("Beam Search may take a very long time or be infeasible.")
             
-            # give user choice to cancel operation
-            confirm = input("Do you still want to continue? (y/n): ").lower()
-            if confirm != 'y':
-                print("Operation cancelled.")
-                sys.exit()
-            break
-        elif alg in [1, 2, 3, 4]:
-            break
-        else:
-            print("Invalid choice.")
-    except ValueError:
-        print("Enter a number.")
+#             # give user choice to cancel operation
+#             confirm = input("Do you still want to continue? (y/n): ").lower()
+#             if confirm != 'y':
+#                 print("Operation cancelled.")
+#                 sys.exit()
+#             break
+#         elif alg in [1, 2, 3, 4]:
+#             break
+#         else:
+#             print("Invalid choice.")
+#     except ValueError:
+#         print("Enter a number.")
 
-alg_names = {
-    1: "Greedy (best ride per vehicle)",
-    2: "Greedy (best vehicle per ride)",
-    3: "Weighted A*",
-    4: "Beam Search"
-}
-print(f"\nAlgorithm used: {alg_names[alg]}")
+# alg_names = {
+#     1: "Greedy (best ride per vehicle)",
+#     2: "Greedy (best vehicle per ride)",
+#     3: "Weighted A*",
+#     4: "Beam Search"
+# }
+# print(f"\nAlgorithm used: {alg_names[alg]}")
     
-# User chooses weighted A* search
-if alg == 3:
-    while True:
-        try:
-            weight = int(input("Choose a weigth for the Weighted A* Search: "))
-            if weight > 0:
-                break
-            else:
-                print("Must be > 0.")
-        except ValueError:
-            print("Enter a number.")
+# # User chooses weighted A* search
+# if alg == 3:
+#     while True:
+#         try:
+#             weight = int(input("Choose a weigth for the Weighted A* Search: "))
+#             if weight > 0:
+#                 break
+#             else:
+#                 print("Must be > 0.")
+#         except ValueError:
+#             print("Enter a number.")
 
-# User chooses beam search
-if alg == 4:
-    while True:
-        try:
-            beam_width = int(input("Choose a width for the Beam Search: "))
-            if beam_width > 0:
-                break
-            else:
-                print("Must be > 0.")
-        except ValueError:
-            print("Enter a number.")
+# # User chooses beam search
+# if alg == 4:
+#     while True:
+#         try:
+#             beam_width = int(input("Choose a width for the Beam Search: "))
+#             if beam_width > 0:
+#                 break
+#             else:
+#                 print("Must be > 0.")
+#         except ValueError:
+#             print("Enter a number.")
 
 
-# Choose mode of execution (either a single run or analysis with multiple runs)
+# # Choose mode of execution (either a single run or analysis with multiple runs)
 
-print("\nExecution mode:")
-print("1. Single run")
-print("2. Multiple runs (analysis)")
+# print("\nExecution mode:")
+# print("1. Single run")
+# print("2. Multiple runs (analysis)")
 
-while True:
-    try:
-        mode = int(input("Choose mode: "))
-        if mode in [1, 2]:
-            break
-        else:
-            print("Invalid choice.")
-    except ValueError:
-        print("Enter a number.")
+# while True:
+#     try:
+#         mode = int(input("Choose mode: "))
+#         if mode in [1, 2]:
+#             break
+#         else:
+#             print("Invalid choice.")
+#     except ValueError:
+#         print("Enter a number.")
 
-n_runs = 1
-if mode == 2:
-    while True:
-        try:
-            n_runs = int(input("Number of runs: "))
-            if n_runs > 0:
-                break
-            else:
-                print("Must be > 0.")
-        except ValueError:
-            print("Enter a number.")
+# n_runs = 1
+# if mode == 2:
+#     while True:
+#         try:
+#             n_runs = int(input("Number of runs: "))
+#             if n_runs > 0:
+#                 break
+#             else:
+#                 print("Must be > 0.")
+#         except ValueError:
+#             print("Enter a number.")
 
 
 
@@ -351,102 +351,204 @@ def old_greedy_search(state, bonus, T):
     return state
 
 
+#Implementação do Beam Search 
+# A cópia dos objetos é feita manualmente (inline) para máxima performance.
+def beam_search(initial_state, beam_width, bonus, T):
+   
+    beam = [initial_state]
+    best_overall_state = initial_state
+
+    while len(beam) > 0:
+        next_states = []
+        
+        for state in beam:
+            if len(state.remaining_rides) == 0:
+                continue
+                
+            # Find the vehicle that becomes available the earliest
+            # This balances the timeline for all vehicles
+            earliest_time = float('inf')
+            target_vehicle = None
+            
+            for v in state.vehicles:
+                if v.time < earliest_time:
+                    earliest_time = v.time
+                    target_vehicle = v
+            
+            # If no vehicle is found 
+            if target_vehicle is None:
+                continue
+                
+            valid_rides = []
+            
+            for ride in state.remaining_rides:
+                if target_vehicle.can_complete_ride(ride, T):
+                    
+                    dist_to_start = target_vehicle.distance_to_ride_start(ride)
+                    arrival = target_vehicle.time + dist_to_start
+                    wait_time = max(0, ride.s - arrival)
+                    
+                    # Heuristic value 
+                    value = ride.distance() - dist_to_start - wait_time
+                    if arrival <= ride.s:
+                        value += bonus
+                    
+                    # Save both value and ride object
+                    valid_rides.append((value, ride.id, ride))
+
+            
+            if len(valid_rides) > 0:
+                # Sort rides by best value first
+                valid_rides.sort(key=lambda x: x[0], reverse=True)
+                
+                # Expand states, limited by beam_width
+                limit = min(beam_width, len(valid_rides))
+                for i in range(limit):
+                    ride_to_assign = valid_rides[i][2]
+                    
+                    # --- STATE CLONE ---
+                    new_vehicles = []
+                    for v in state.vehicles:
+                        new_v = Vehicle(v.id, v.row, v.col, v.time)
+                        
+                        new_v.assigned_rides = []
+                        for assigned in v.assigned_rides:
+                            new_v.assigned_rides.append(assigned)
+                        new_vehicles.append(new_v)
+                        
+                    new_remaining_rides = []
+                    for r in state.remaining_rides:
+                        new_remaining_rides.append(r)
+                    
+                    new_state = HashCodeState(new_vehicles, new_remaining_rides, state.score)
+                    
+
+                    # Apply operator to the isolated new state
+                    apply_operator(new_state, (target_vehicle.id, ride_to_assign.id), bonus, T)
+                    next_states.append(new_state)
+
+        if len(next_states) == 0:
+            break 
+            
+       
+        for i in range(len(next_states)):
+            for j in range(i + 1, len(next_states)):
+                if next_states[j].score > next_states[i].score:
+                    # Swap
+                    temp = next_states[i]
+                    next_states[i] = next_states[j]
+                    next_states[j] = temp
+        
+        # Keep only the best states
+        beam = []
+        limit = min(beam_width, len(next_states))
+        for i in range(limit):
+            beam.append(next_states[i])
+        
+        # Update global best state
+        if beam[0].score > best_overall_state.score:
+            best_overall_state = beam[0]
+
+    return best_overall_state
+
+if __name__ == "__main__":
+    raise SystemExit("Este ficheiro é uma biblioteca. Corre server.py ou usa o GUI.")
+
 #-----solve problem------#
 
-best_state = None
-best_score = -1
-scores = []
+# best_state = None
+# best_score = -1
+# scores = []
 
-print()
+# print()
 
-run_start = run_time.time() # starts timer to track program run time
+# run_start = run_time.time() # starts timer to track program run time
 
-for i in range(n_runs):
-    print(f"Run {i+1}/{n_runs}", end="\r") # track progress
-    # recreate vehicles and state each run (necessary since they're modified with each run of the algorithm)
-    vehicles = [Vehicle(i) for i in range(F)]
-    state = HashCodeState(vehicles, list(rides))
+# for i in range(n_runs):
+#     print(f"Run {i+1}/{n_runs}", end="\r") # track progress
+#     # recreate vehicles and state each run (necessary since they're modified with each run of the algorithm)
+#     vehicles = [Vehicle(i) for i in range(F)]
+#     state = HashCodeState(vehicles, list(rides))
 
-    if alg == 1: # normal greedy search (best ride for vehicle)
-        result = greedy_search(state, B, T)
+#     if alg == 1: # normal greedy search (best ride for vehicle)
+#         result = greedy_search(state, B, T)
         
-    elif alg == 2: # old greedy search (best vehicle for ride)
-        result = old_greedy_search(state, B, T)
+#     elif alg == 2: # old greedy search (best vehicle for ride)
+#         result = old_greedy_search(state, B, T)
         
-    elif alg == 3: # weighted A* search
-        ##### insert here call for weighted A* search #####
-        print("\nWeighted A* not implemented yet.")
-        continue
+#     elif alg == 3: # weighted A* search
+#         ##### insert here call for weighted A* search #####
+#         print("\nWeighted A* not implemented yet.")
+#         continue
         
-    elif alg == 4: # beam search
-        ##### insert here call for beam search #####
-        print("\nBeam Search not implemented yet.")
-        continue
+#     elif alg == 4: # beam search
+#         result = beam_search(state, beam_width, B, T)
+       
 
-    scores.append(result.score)
+#     scores.append(result.score)
 
-    if result.score > best_score:
-        best_score = result.score
-        best_state = result
+#     if result.score > best_score:
+#         best_score = result.score
+#         best_state = result
         
-run_end = run_time.time() # stops timer to track program run time
-print()
+# run_end = run_time.time() # stops timer to track program run time
+# print()
 
-# In case algorithm chosen isn't implemented  <--------------------------- REMOVE AFTER EVERYTHING IS IMPLEMENTED
-if best_state is None:
-    print("\nNo valid algorithm was executed.")
-    sys.exit()
-
-
-final_state = best_state
+# # In case algorithm chosen isn't implemented  <--------------------------- REMOVE AFTER EVERYTHING IS IMPLEMENTED
+# if best_state is None:
+#     print("\nNo valid algorithm was executed.")
+#     sys.exit()
 
 
-#output data
-fh = open(name_output, "w")
-for v in final_state.vehicles:
-    v_rides = " ".join(str(r) for r in v.assigned_rides)
-    fh.write(f"{len(v.assigned_rides)} {v_rides}\n")
+# final_state = best_state
 
-fh.close()
 
-print(f"\nOutput written to: {name_output}")
+# #output data
+# fh = open(name_output, "w")
+# for v in final_state.vehicles:
+#     v_rides = " ".join(str(r) for r in v.assigned_rides)
+#     fh.write(f"{len(v.assigned_rides)} {v_rides}\n")
 
-# Theoretical maximum score assuming:
-# - every ride is possible to complete
-# - every bonus is achievable for each ride
-# it isn't a true optimal/possibly achievable scenario in practice, but serves as an upper bound for normalisation
-theoretical_max_possible = sum(r.distance() + B for r in rides)
+# fh.close()
 
-# Analysis of the results or score for the run
-if n_runs > 1:
-    avg = sum(scores) / len(scores)
-    std_dev = statistics.stdev(scores) if len(scores) > 1 else 0
-    min_score = min(scores)
-    max_score = max(scores)
+# print(f"\nOutput written to: {name_output}")
 
-    # Raw metrics
-    print(f"\nAverage score: {avg:.2f}")
-    print(f"Std deviation: {std_dev:.2f}")
-    print(f"Min score: {min_score}")
-    print(f"Max score: {max_score}")
+# # Theoretical maximum score assuming:
+# # - every ride is possible to complete
+# # - every bonus is achievable for each ride
+# # it isn't a true optimal/possibly achievable scenario in practice, but serves as an upper bound for normalisation
+# theoretical_max_possible = sum(r.distance() + B for r in rides)
+
+# # Analysis of the results or score for the run
+# if n_runs > 1:
+#     avg = sum(scores) / len(scores)
+#     std_dev = statistics.stdev(scores) if len(scores) > 1 else 0
+#     min_score = min(scores)
+#     max_score = max(scores)
+
+#     # Raw metrics
+#     print(f"\nAverage score: {avg:.2f}")
+#     print(f"Std deviation: {std_dev:.2f}")
+#     print(f"Min score: {min_score}")
+#     print(f"Max score: {max_score}")
     
-    # Normalised metrics (better for comparisons of algorithms between data sets)
-    print(f"\nAverage score per ride: {avg / N:.2f}")
-    print(f"Average normalised score: {avg / theoretical_max_possible:.4f}") # The closer to 1 the better
+#     # Normalised metrics (better for comparisons of algorithms between data sets)
+#     print(f"\nAverage score per ride: {avg / N:.2f}")
+#     print(f"Average normalised score: {avg / theoretical_max_possible:.4f}") # The closer to 1 the better
     
-    print(f"\nTime: {run_end - run_start:.2f}s")
+#     print(f"\nTime: {run_end - run_start:.2f}s")
     
-else:
-    score = final_state.score
+# else:
+#     score = final_state.score
     
-    # Raw metrics
-    print(f"\nScore for this run: {score}")
+#     # Raw metrics
+#     print(f"\nScore for this run: {score}")
     
-    # Normalised metrics (better for comparisons of algorithms between data sets)
-    print(f"Score per ride: {score / N:.2f}")
-    print(f"Normalised score: {score / theoretical_max_possible:.4f}") # The closer to 1 the better
+#     # Normalised metrics (better for comparisons of algorithms between data sets)
+#     print(f"Score per ride: {score / N:.2f}")
+#     print(f"Normalised score: {score / theoretical_max_possible:.4f}") # The closer to 1 the better
     
-    print(f"\nTime: {run_end - run_start:.2f}s")
+#     print(f"\nTime: {run_end - run_start:.2f}s")
 
 
 
