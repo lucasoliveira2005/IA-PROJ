@@ -32,9 +32,10 @@ struct Vehicle {
 struct State {
     vector<Vehicle> vehicles;
     vector<bool> used_rides;    //muito mais leve que ter um vector<Ride>
+    int currentRide = 0;
+    int currentVehicle = 0;
     int score = 0;
     int f_value = 0;
-    int num_used = 0;           //para o contador saber quando parar
     bool operator<(const State& other) const { return f_value < other.f_value; }
 };
 
@@ -48,17 +49,17 @@ int evaluate(int currentScore, const Vehicle& v, const Ride& r, int bonus, int w
     return currentScore + (weight * heuristic);
 }
 
-void apply_operator(State& state, int vehicle_idx, const Ride& ride, int bonus, int T) {
-    Vehicle& v = state.vehicles[vehicle_idx];
-    int dist_to_start = v.dist_to_ride(ride);
-    int start_time = max(v.time + dist_to_start, ride.s);
+void apply_operator(State& state, Vehicle& vehicle, const Ride& ride, const int bonus, const int T, const int rideIdx) {
+    int dist_to_start = vehicle.dist_to_ride(ride);
+    int start_time = max(vehicle.time + dist_to_start, ride.s);
     if (start_time == ride.s) state.score += bonus;
     state.score += ride.distance();
-    v.row = ride.x; v.col = ride.y;
-    v.time = start_time + ride.distance();
-    v.assigned_rides.push_back(ride.id);
+    vehicle.row = ride.x;
+    vehicle.col = ride.y;
+    vehicle.time = start_time + ride.distance();
+    vehicle.assigned_rides.push_back(ride.id);
     state.used_rides[ride.id] = true;
-    state.num_used++;
+    state.currentRide = rideIdx;
 }
 
 State greedy_search(vector<Vehicle> vels, const vector<Ride>& rds, int B, int T) {
@@ -66,36 +67,6 @@ State greedy_search(vector<Vehicle> vels, const vector<Ride>& rds, int B, int T)
     s.vehicles = vels;
     s.used_rides.assign(rds.size(), false);
     
-    for (auto& v : s.vehicles) {
-        while (true) {
-            int best_ride_idx = -1;
-            double best_score = -1e18;
-
-            for (size_t i = 0; i < rds.size(); ++i) {
-                if (s.used_rides[i]) continue;
-                if (v.can_complete(rds[i], T)) {
-                    // Heuristic: prioritize short travel + wait time
-                    int dist = v.dist_to_ride(rds[i]);
-                    int wait = max(0, rds[i].s - (v.time + dist));
-                    
-                    // Simple but effective: higher score for less "wasted" time
-                    double val = (double)rds[i].distance() / (dist + wait + 1);
-                    if (v.time + dist <= rds[i].s) val += B; // Bonus potential
-
-                    if (val > best_score) {
-                        best_score = val;
-                        best_ride_idx = i;
-                    }
-                }
-            }
-
-            if (best_ride_idx != -1) {
-                apply_operator(s, (int)(&v - &s.vehicles[0]), rds[best_ride_idx], B, T);
-            } else {
-                break; // No more rides possible for this vehicle
-            }
-        }
-    }
     return s;
 }
 
@@ -110,7 +81,7 @@ State A_star(const vector<Vehicle>& init_v, const vector<Ride>& all_rides, int B
     State best_node = initial;
     int nodes = 0;
 
-    while (!pq.empty() && nodes < 10000000) { // Limite de expansão para não estourar RAM
+    while (!pq.empty() && nodes < INT8_MAX) { // Limite de expansão para não estourar RAM
 
         State curr = pq.top();
         pq.pop();
@@ -119,30 +90,52 @@ State A_star(const vector<Vehicle>& init_v, const vector<Ride>& all_rides, int B
             best_node = curr;
         }
 
-        if (curr.num_used == (int)all_rides.size()) break;
-        nodes++;
+        if (curr.currentRide >= (int)all_rides.size()) break;
 
         int tried_in_this_node = 0;     // Para efeitos de performance, limitamos quantas rides novas tentamos por nó
 
-        for (size_t i = 0; (i < all_rides.size() && tried_in_this_node < 15); ++i) {
+        Vehicle& currentVehicle = curr.vehicles[curr.currentVehicle];
 
-            if (curr.used_rides[i]) continue; // Se esta ride já foi usada neste branch, então da skip
-            const Ride& r = all_rides[i];
+        bool canCompleteAnyRide = false;
 
-            for (size_t j = 0; j < curr.vehicles.size(); ++j) {
-                if (curr.vehicles[j].can_complete(r, T)) {
+        State next_s = curr;
 
-                    State next_s = curr;
-                    next_s.f_value = evaluate(next_s.score, next_s.vehicles[j], r, B, weight);
-                    apply_operator(next_s, (int)j, r, B, T);
+        for (size_t r = 0; r < all_rides.size(); r++) {
 
+            if (!curr.used_rides[r]) {
+                const Ride& ride = all_rides[r];
+
+                if (currentVehicle.can_complete(ride, T)) {
+
+                    canCompleteAnyRide = true;
+
+                    next_s.f_value = evaluate(next_s.score, currentVehicle, ride, B, weight);
+                    apply_operator(next_s, currentVehicle, ride, B, T, curr.currentRide);
+                    nodes++;
+
+                    if ((curr.currentVehicle % curr.vehicles.size()) == 0) {
+                        next_s.currentVehicle = 0;
+                    }
+
+                    next_s.currentVehicle++;
                     pq.push(next_s);
                     tried_in_this_node++;
-                    break; 
                 }
             }
         }
+
+        if (!canCompleteAnyRide) {
+            State next_v = curr;
+
+            if ((curr.currentVehicle % curr.vehicles.size()) == 0) {
+                next_s.currentVehicle = 0;
+            }
+
+            next_s.currentVehicle++;
+            pq.push(next_s);
+        }
     }
+    
     return best_node;
 }
 
@@ -175,11 +168,20 @@ int main() {
     ifstream infile(name_input);
     int R, C, F, N, B, T;
     infile >> R >> C >> F >> N >> B >> T;
+
     vector<Ride> rides(N);
     for (int i = 0; i < N; ++i) {
         rides[i].id = i;
         infile >> rides[i].a >> rides[i].b >> rides[i].x >> rides[i].y >> rides[i].s >> rides[i].f;
     }
+
+    sort(rides.begin(), rides.end(), [](const Ride& a, const Ride& b) {
+        if (a.s != b.s) {
+            return a.s < b.s;
+        }
+        return a.f < b.f;     // Desempate: quem termina mais cedo ganha prioridade
+    });
+
     vector<Vehicle> vehicles(F);
     for (int i = 0; i < F; ++i) vehicles[i].id = i;
 
