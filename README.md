@@ -122,6 +122,11 @@ The following datasets were taken from the official Google Hash Code challenge r
 - e_high_bonus.in : large amount of rides with focus on the impact of bonuses in the calculations of the heuristic. It's computational expensive, making it unsuitable for A* or Beam Search.
 
 
+##########################################################################
+####### COMPLETAR COM DATSETS ADICIONADOS QUE NÃO PERTENCEM AO PROBLEM ###
+##########################################################################
+
+
 ## Experimental Results
 
 This section will present a comparison of the implemented algorithms across the available datasets.
