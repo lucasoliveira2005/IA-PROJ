@@ -1,5 +1,10 @@
 # Optimization Problems - Self-Driving Rides
 
+## Group Members
+- Liess Pereira Aouimeur (up202206296)
+- Lucas Almeida Oliveira (up202305719)
+- Guilherme Macedo Nereu (up202303628)
+
 ## Project Overview
 
 This project implements and compares different search and heuristic algorithms for the Google Hash Code Self-Driving Rides problem.
