@@ -67,12 +67,12 @@ To reduce ordering bias, vehicles are randomly shuffled at each iteration, allow
 - apply_operator(state, operator, bonus, T): assigns a ride to a vehicle and updates its state (position, time, and score).
 - choose_best_ride_for_vehicle(state, vehicle, bonus, T): selects the best ride for a given vehicle based on the heuristic.
 - choose_best_vehicle_for_ride(state, bonus, T): selects the globally best (vehicle, ride) pair, corresponding to the initial greedy strategy.
-######### ADICIONAR HEURISTIC SELECTION USADAS PARA O A* #########
-######### ADICIONAR HEURISTIC SELECTION PARA O BEAM SEARCH #########
+- ######### ADICIONAR HEURISTIC SELECTION USADAS PARA O A* #########
+- ######### ADICIONAR HEURISTIC SELECTION PARA O BEAM SEARCH #########
 - greedy_search(state, bonus, T): main greedy algorithm using local decisions (best ride per vehicle)
 - old_greedy_search(state, bonus, T): baseline greedy approach used for comparison.
-######### ADICIONAR SEARCH ALGORITHM FUNCTION USADAS PARA O A* #########
-######### ADICIONAR SEARCH ALGORITHM FUNCTION USADAS PARA O BEAM SEARCH #########
+- ######### ADICIONAR SEARCH ALGORITHM FUNCTION USADAS PARA O A* #########
+- ######### ADICIONAR SEARCH ALGORITHM FUNCTION USADAS PARA O BEAM SEARCH #########
 
 ### Execution Flow:
 1. Load input dataset
