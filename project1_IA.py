@@ -1,8 +1,10 @@
 import os
 import random
 import statistics
+import time as run_time
+import sys
 
-#definitions
+#-------Definitions-------#
 class Ride:
     def __init__(self, ride_id, start_row, start_col, end_row, end_col, earliest_start, latest_finish):
         self.id = ride_id
@@ -57,8 +59,8 @@ class HashCodeState:
 
 
 
-#---------MENU---------#
-# Extract data from Input data set
+#-------MENU-------#
+# Extract data from Input datase
 
 input_folder = "inputs"
 
@@ -83,33 +85,97 @@ while True:
 
 # Get full path
 name_input = os.path.join(input_folder, files[choice])
-
 print(f"\nSelected: {name_input}")
+filename = os.path.basename(name_input) # gets only the name of the file, removing the path
+base, _ = os.path.splitext(filename) # removes the file extension
+name_output = os.path.join("outputs", base + ".out") # creates the output file, with correct path and file extensio
 
-print("\nAlgorithm")
-print("1. Best First Search (Greedy)")
-print("2. Weighted A* (default weight is 1)")
+# Opens and extracts file dat
+fh = open(name_input, "r")
+R, C, F, N, B, T = map(int, fh.readline().split())
+
+
+# Large number of rides makes exhaustive or tree-based search (A*, Beam)
+# computationally expensive or infeasible, so user should be warned.
+# The limits are arbitrary, but these are relatively safe options
+heavy_file = (N * F > 20000) or (N > 1500)
+
+rides = []
+for i in range(N):
+    a, b, x, y, s, f = map(int, fh.readline().split())
+    rides.append(Ride(i, a, b, x, y, s, f))
+vehicles = [Vehicle(i) for i in range(F)]
+
+fh.close()
+
+# Choose which algorithm to run the dataset with
+
+print("\nAlgorithm to use:")
+print("1. Greedy Best-First-Search (Best ride per vehicle)")
+print("2. Greedy Best-First-Search (Best vehicle per ride)")
+print("3. Weighted A* search")
+print("4. Beam search")
 
 while True:
     try:
-        algorithm = int(input("Choose algorithm: "))
-        if algorithm == 1:
+        alg = int(input("Choose algorithm to use: "))
+        if heavy_file and alg == 3:
+            print("\nWarning: This dataset is large.")
+            print("A* Search may take a very long time or be infeasible.")          
+            # give user choice to cancel operation
+            confirm = input("Do you still want to continue? (y/n): ").lower()
+            if confirm != 'y':
+                print("Operation cancelled.")
+                sys.exit()
             break
-        if algorithm == 2:
-            weight = int(input("Choose a weight for the A*: "))
-
-            while (weight < 1):
-                weight = int(input("Weight shoud be >= 1*: "))
+        elif heavy_file and alg == 4:
+            print("\nWarning: This dataset is large.")
+            print("Beam Search may take a very long time or be infeasible.")          
+            # give user choice to cancel operation
+            confirm = input("Do you still want to continue? (y/n): ").lower()
+            if confirm != 'y':
+                print("Operation cancelled.")
+                sys.exit()
+            break
+        elif alg in [1, 2, 3, 4]:
             break
         else:
             print("Invalid choice.")
     except ValueError:
         print("Enter a number.")
+alg_names = {
+    1: "Greedy (best ride per vehicle)",
+    2: "Greedy (best vehicle per ride)",
+    3: "Weighted A*",
+    4: "Beam Search"
+}
+print(f"\nAlgorithm used: {alg_names[alg]}")  
 
+# User chooses weighted A* search
+if alg == 3:
+    while True:
+        try:
+            weight = int(input("Choose a weigth for the Weighted A* Search: "))
+            if weight > 0:
+                break
+            else:
+                print("Must be > 0.")
+        except ValueError:
+            print("Enter a number.")
 
+# User chooses beam search
+if alg == 4:
+    while True:
+        try:
+            beam_width = int(input("Choose a width for the Beam Search: "))
+            if beam_width > 0:
+                break
+            else:
+                print("Must be > 0.")
+        except ValueError:
+            print("Enter a number.")
 
-# Choose mode of execution (either a single run or analysis with multiple runs)
-
+# Choose mode of execution (either a single run or analysis with multiple runs
 print("\nExecution mode:")
 print("1. Single run")
 print("2. Multiple runs (analysis)")
@@ -136,27 +202,10 @@ if mode == 2:
         except ValueError:
             print("Enter a number.")
 
-filename = os.path.basename(name_input) # gets only the name of the file, removing the path
-base, _ = os.path.splitext(filename) # removes the file extension
-name_output = os.path.join("outputs", base + ".out") #creates the output file, with correct path and file extension
 
-fh = open(name_input, "r")
-R, C, F, N, B, T = map(int, fh.readline().split())
+#-------Operators-------#
 
-rides = []
-for i in range(N):
-    a, b, x, y, s, f = map(int, fh.readline().split())
-    rides.append(Ride(i, a, b, x, y, s, f))
-
-vehicles = [Vehicle(i) for i in range(F)]
-
-fh.close()
-
-
-
-
-#-------Operators---------#
-
+# Applies a (vehicle, ride) assignment to the current state
 def apply_operator(state, operator, bonus, T):
     vehicle_id, ride_id = operator
 
@@ -173,6 +222,7 @@ def apply_operator(state, operator, bonus, T):
     if start_time == ride.s:
         earned += bonus
 
+    # updates vehicle state
     vehicle.row = ride.x
     vehicle.col = ride.y
     vehicle.time = finish_time
@@ -184,173 +234,17 @@ def apply_operator(state, operator, bonus, T):
     return state
 
 
-# Intead of choosing globally the best ride, which would favour vehicles 
-# already used, since they would technically be closer to the ride start most times,
-# it chooses locally the best ride for each vehicle, being closer to
-# a parallel scheduler and more efficient overall
-def choose_best_ride_for_vehicle(state, vehicle, bonus, T):
-    best_ride = None
-    best_value = float('-inf')
-
-    for ride in state.remaining_rides:
-        if vehicle.can_complete_ride(ride, T):
-
-            dist_to_start = vehicle.distance_to_ride_start(ride)
-            ride_dist = ride.distance()
-            arrival = vehicle.time + dist_to_start
-            wait_time = max(0, ride.s - arrival)
-
-            value = ride_dist - dist_to_start - wait_time    #heuristic (from Scoring section + using wait_time to penalize waiting)
-
-            if arrival <= ride.s:
-                value += bonus
-
-            if value > best_value:
-                best_value = value
-                best_ride = ride
-
-    return best_ride
-
-
-def choose_best_ride_for_vehicle_AStar(state, vehicle, bonus, T, weight=1):
-    best_ride = None
-    best_value = float('-inf')
-
-    for ride in state.remaining_rides:
-        if vehicle.can_complete_ride(ride, T):
-
-            dist_to_start = vehicle.distance_to_ride_start(ride)
-            ride_dist = ride.distance()
-            arrival = vehicle.time + dist_to_start
-            wait_time = max(0, ride.s - arrival)
-
-            heuristic = ride_dist - dist_to_start - wait_time    #heuristic (from Scoring section + using wait_time to penalize waiting)
-            result = state.score + weight*heuristic
-
-            if arrival <= ride.s:
-                result += bonus
-
-            if result > best_value:
-                best_value = result
-                best_ride = ride
-
-    return best_ride
-
-#greedy
-def greedy_search(state, bonus, T):
-
-    while True:
-        progress = False
-        
-        random.shuffle(state.vehicles) #shuffles vehicles each iteration
-
-        for vehicle in state.vehicles:
-            best_ride = choose_best_ride_for_vehicle(state, vehicle, bonus, T)
-
-            if best_ride is not None:
-                apply_operator(state, (vehicle.id, best_ride.id), bonus, T)
-                progress = True
-
-        if not progress:
-            break
-
-    return state
-
-
-#A*
-def A_star(state, bonus, T):
-
-    while True:
-        progress = False
-        
-        random.shuffle(state.vehicles) #shuffles vehicles each iteration
-
-        for vehicle in state.vehicles:
-            best_ride = choose_best_ride_for_vehicle_AStar(state, vehicle, bonus, T, 1)
-
-            if best_ride is not None:
-                apply_operator(state, (vehicle.id, best_ride.id), bonus, T)
-                progress = True
-
-        if not progress:
-            break
-
-    return state
-
-
-
-#-----solve problem------#
-
-best_state = None
-best_score = -1
-scores = []
-
-print()
-
-for i in range(n_runs):
-    print(f"Run {i+1}/{n_runs}", end="\r") # track progress
-    # recreate vehicles and state each run (necessary since they're modified with each run of the algorithm)
-    vehicles = [Vehicle(i) for i in range(F)]
-    state = HashCodeState(vehicles, list(rides))
-
-    if (algorithm == 1):
-        result = greedy_search(state, B, T)
-    elif (algorithm == 2):
-        result = A_star(state, B, T)
-
-    scores.append(result.score)
-
-    if result.score > best_score:
-        best_score = result.score
-        best_state = result
-        
-print()
-
-final_state = best_state
-
-
-#output data
-final_vehicles = sorted(final_state.vehicles, key=lambda v: v.id)
-fh = open(name_output, "w")
-for v in final_state.vehicles:
-    v_rides = " ".join(str(r) for r in v.assigned_rides)
-    fh.write(f"{len(v.assigned_rides)} {v_rides}\n")
-
-fh.close()
-
-print(f"\nOutput written to: {name_output}")
-
-
-
-# Analysis of the results or score for the run
-if n_runs > 1:
-    avg = sum(scores) / len(scores)
-    std_dev = statistics.stdev(scores) if len(scores) > 1 else 0
-    min_score = min(scores)
-    max_score = max(scores)
-
-    print(f"\nAverage score: {avg:.2f}")
-    print(f"Std deviation: {std_dev:.2f}")
-    print(f"Min score: {min_score}")
-    print(f"Max score: {max_score}")
-    
-else:
-    print(f"\nScore for this run: {final_state.score}")
-
-
-
-
-
-
-# Old stratagy of choosing best vehicle for ride (resulted in same set of vehicles getting all the rides)
-"""
-def choose_best_operator(state, bonus, T):  #choose best vehicle/ride pair for highest value
+# Previous strategy: selects the globally best (vehicle, ride) pair.
+# This tends to favour already active vehicles (since they are generally 
+# closer to the ride start position), leading to poor distribution
+# of rides and underutilization of the vehicles available.
+def choose_best_vehicle_for_ride(state, bonus, T):  #choose best vehicle/ride pair for highest value
     best_op = None
     best_value = float('-inf')
     
     safe_replacement_op = None   # in case there is no Best operator, this one will be used instead
 
-    for vehicle in state.vehicles:        #the for loops generate the operators (meaning the vehicle/ride pairs)
+    for vehicle in state.vehicles:        # the for loops generate the operators (meaning the vehicle/ride pairs)
         for ride in state.remaining_rides:
             if vehicle.can_complete_ride(ride, T):
                 
@@ -362,7 +256,7 @@ def choose_best_operator(state, bonus, T):  #choose best vehicle/ride pair for h
                 arrival = vehicle.time + dist_to_start
                 wait_time = max(0, ride.s - arrival)
                 
-                value = ride_dist - dist_to_start - wait_time    #heuristic (from Scoring section + using wait_time to penalize waiting)
+                value = ride_dist - dist_to_start - wait_time    # heuristic (from Scoring section + using wait_time to penalize waiting)
                 if arrival <= ride.s:
                     value += bonus
 
@@ -376,12 +270,63 @@ def choose_best_operator(state, bonus, T):  #choose best vehicle/ride pair for h
     return safe_replacement_op
 
 
+# Improved strategy: selects locally the best ride for each vehicle.
+# This approximates a parallel scheduler and results in a more balanced
+# distribution of rides across vehicles.
+def choose_best_ride_for_vehicle(state, vehicle, bonus, T):
+    best_ride = None
+    best_value = float('-inf')
 
-#greedy
+    for ride in state.remaining_rides:
+        if vehicle.can_complete_ride(ride, T):
+
+            dist_to_start = vehicle.distance_to_ride_start(ride)
+            ride_dist = ride.distance()
+            arrival = vehicle.time + dist_to_start
+            wait_time = max(0, ride.s - arrival)
+
+            value = ride_dist - dist_to_start - wait_time    # heuristic (from Scoring section + using wait_time to penalize waiting)
+
+            if arrival <= ride.s:
+                value += bonus
+
+            if value > best_value:
+                best_value = value
+                best_ride = ride
+
+    return best_ride
+
+# Greedy heuristic: assigns rides iteratively using local best choices.
+# Vehicles are shuffled to reduce ordering bias.
 def greedy_search(state, bonus, T):
 
     while True:
-        op = choose_best_operator(state, bonus, T)
+        progress = False
+        
+        random.shuffle(state.vehicles) # shuffles vehicles each iteration
+
+        for vehicle in state.vehicles:
+            best_ride = choose_best_ride_for_vehicle(state, vehicle, bonus, T)
+
+            if best_ride is not None:
+                apply_operator(state, (vehicle.id, best_ride.id), bonus, T)
+                progress = True
+
+        if not progress:
+            break
+
+    return state
+
+# Greedy variant using global best operator selection (our first attempt).
+# Included for comparison purposes, as it produces inferior results.
+def old_greedy_search(state, bonus, T):
+
+    while True:
+        random.shuffle(state.vehicles) # shuffles vehicles each iteration, however
+                                       # randomness does not fix this approach's
+                                       # structural bias
+        
+        op = choose_best_vehicle_for_ride(state, bonus, T)
         if op is None:  # in case there are no feasible operators
             break
 
@@ -392,34 +337,200 @@ def greedy_search(state, bonus, T):
         state = new_state
 
     return state
-"""
 
-#If we need/want to use BFS/DFS/A*
-"""
-#definition of Tree Node for states
-class TreeNode:
 
-    def __init__(self, state, parent=None, operator=None, cost=0, depth=0):
-        self.state = state
-        self.parent = parent
-        self.operator = operator
-        self.cost = cost
-        self.depth = depth
 
-    def path(self):
-        node = self
-        result = []
+#Implementação do Beam Search 
+# A cópia dos objetos é feita manualmente (inline) para máxima performance.
+def beam_search(initial_state, beam_width, bonus, T):
+   
+    beam = [initial_state]
+    best_overall_state = initial_state
 
-        while node.parent is not None: #go up the tree to each parent from goal node
-            result.append(node.operator)
-            node = node.parent
+    while len(beam) > 0:
+        next_states = []
+        
+        for state in beam:
+            if len(state.remaining_rides) == 0:
+                continue
+                
+            # Find the vehicle that becomes available the earliest
+            # This balances the timeline for all vehicles
+            earliest_time = float('inf')
+            target_vehicle = None
+            
+            for v in state.vehicles:
+                if v.time < earliest_time:
+                    earliest_time = v.time
+                    target_vehicle = v
+            
+            # If no vehicle is found 
+            if target_vehicle is None:
+                continue
+                
+            valid_rides = []
+            
+            for ride in state.remaining_rides:
+                if target_vehicle.can_complete_ride(ride, T):
+                    
+                    dist_to_start = target_vehicle.distance_to_ride_start(ride)
+                    arrival = target_vehicle.time + dist_to_start
+                    wait_time = max(0, ride.s - arrival)
+                    
+                    # Heuristic value 
+                    value = ride.distance() - dist_to_start - wait_time
+                    if arrival <= ride.s:
+                        value += bonus
+                    
+                    # Save both value and ride object
+                    valid_rides.append((value, ride.id, ride))
 
-        result.reverse() #order from root to goal node
-        return result
-    
-    
-#goal definition
-def goal_state_func(state):
-    return len(state.remaining_rides) == 0
+            
+            if len(valid_rides) > 0:
+                # Sort rides by best value first
+                valid_rides.sort(key=lambda x: x[0], reverse=True)
+                
+                # Expand states, limited by beam_width
+                limit = min(beam_width, len(valid_rides))
+                for i in range(limit):
+                    ride_to_assign = valid_rides[i][2]
+                    
+                    # --- STATE CLONE ---
+                    new_vehicles = []
+                    for v in state.vehicles:
+                        new_v = Vehicle(v.id, v.row, v.col, v.time)
+                        
+                        new_v.assigned_rides = []
+                        for assigned in v.assigned_rides:
+                            new_v.assigned_rides.append(assigned)
+                        new_vehicles.append(new_v)
+                        
+                    new_remaining_rides = []
+                    for r in state.remaining_rides:
+                        new_remaining_rides.append(r)
+                    
+                    new_state = HashCodeState(new_vehicles, new_remaining_rides, state.score)
+                    
 
-"""
+                    # Apply operator to the isolated new state
+                    apply_operator(new_state, (target_vehicle.id, ride_to_assign.id), bonus, T)
+                    next_states.append(new_state)
+
+        if len(next_states) == 0:
+            break 
+            
+       
+        for i in range(len(next_states)):
+            for j in range(i + 1, len(next_states)):
+                if next_states[j].score > next_states[i].score:
+                    # Swap
+                    temp = next_states[i]
+                    next_states[i] = next_states[j]
+                    next_states[j] = temp
+        
+        # Keep only the best states
+        beam = []
+        limit = min(beam_width, len(next_states))
+        for i in range(limit):
+            beam.append(next_states[i])
+        
+        # Update global best state
+        if beam[0].score > best_overall_state.score:
+            best_overall_state = beam[0]
+
+    return best_overall_state
+
+if __name__ == "__main__":
+    raise SystemExit("Este ficheiro é uma biblioteca. Corre server.py ou usa o GUI.")
+
+
+#-------solve problem-------#
+
+def solve():
+    best_state = None
+    best_score = -1
+    scores = []
+    print()
+
+    run_start = run_time.time() # starts timer to track program run time
+
+    for i in range(n_runs):
+        print(f"Run {i+1}/{n_runs}", end="\r") # track progress
+        # recreate vehicles and state each run (necessary since they're modified with each run of the algorithm)
+        vehicles = [Vehicle(i) for i in range(F)]
+        state = HashCodeState(vehicles, list(rides))
+
+        if alg == 1: # normal greedy search (best ride for vehicle)
+            result = greedy_search(state, B, T)
+
+        elif alg == 2: # old greedy search (best vehicle for ride)
+            result = old_greedy_search(state, B, T)
+
+        elif alg == 3: # weighted A* search
+            ##### insert here call for weighted A* search #####
+            print("\nWeighted A* not implemented yet.")
+            continue
+
+        elif alg == 4: # beam search
+            ##### insert here call for beam search #####
+            result = beam_search(state, beam_width, B, T)
+            continue
+
+        scores.append(result.score)
+
+        if result.score > best_score:
+            best_score = result.score
+            best_state = result
+
+    final_state = best_state
+        
+    run_end = run_time.time() # stops timer to track program run time
+    print()
+    output(final_state, scores, run_start, run_end)
+
+
+def output(final_state, scores, run_start, run_end):
+
+    # Output data
+    fh = open(name_output, "w")
+    for v in final_state.vehicles:
+        v_rides = " ".join(str(r) for r in v.assigned_rides)
+        fh.write(f"{len(v.assigned_rides)} {v_rides}\n")
+
+    fh.close()
+    print(f"\nOutput written to: {name_output}")
+
+    # Theoretical maximum score assuming:
+    # - every ride is possible to complete
+    # - every bonus is achievable for each ride
+    # it isn't a true optimal/possibly achievable scenario in practice, but serves as an upper bound for normalisation
+    theoretical_max_possible = sum(r.distance() + B for r in rides)
+
+    # Analysis of the results or score for the run
+    if n_runs > 1:
+        avg = sum(scores) / len(scores)
+        std_dev = statistics.stdev(scores) if len(scores) > 1 else 0
+        min_score = min(scores)
+        max_score = max(scores)
+        # Raw metrics
+        print(f"\nAverage score: {avg:.2f}")
+        print(f"Std deviation: {std_dev:.2f}")
+        print(f"Min score: {min_score}")
+        print(f"Max score: {max_score}")
+  
+        # Normalised metrics (better for comparisons of algorithms between datasets)
+        print(f"\nAverage score per ride: {avg / N:.2f}")
+        print(f"Average normalised score: {avg / theoretical_max_possible:.4f}") # The closer to 1 the better
+
+        print(f"\nTime: {run_end - run_start:.2f}s")
+
+    else:
+        score = final_state.score
+        # Raw metrics
+        print(f"\nScore for this run: {score}")
+
+        # Normalised metrics (better for comparisons of algorithms between datasets)
+        print(f"Score per ride: {score / N:.2f}")
+        print(f"Normalised score: {score / theoretical_max_possible:.4f}") # The closer to 1 the better
+
+        print(f"\nTime: {run_end - run_start:.2f}s")
