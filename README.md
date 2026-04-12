@@ -46,7 +46,7 @@ The difference relies in how the next node to be expanded is chosen. In this cas
 
 Instead of looking only at the next decision by finding what move has the highest heuristic, A* combines it with the knowledge it has from past decisions.
 
-As the results prove, this approach cannot be used in larger datasets. It stared to become very slow and although the re-implementation in C++ (versus Python) helped reduce execution time drastically, the problem was now other: since it looks at the past decisions, we have to store that information.
+As the results prove, this approach cannot be used in larger datasets. It started to become very slow and although the re-implementation in C++ (versus Python) helped reduce execution time drastically, the problem was now other: since it looks at the past decisions, we have to store that information.
 
 The main data structure used is the Priority-Queue (max-heap). In each step, the node with the highest evaluation function
 
