@@ -153,13 +153,13 @@ In contrast, A* and Beam Search suffer from exponential growth in the search spa
 
 A warning mechanism is included to alert the user when attempting to run computationally expensive algorithms (such as A* or Beam Search) on large datasets.
 
-COMANDOS:
+COMMANDS:
 -./setup.sh
 -python project1_IA.py
 
 
 
-NOTAS:
+NOTES:
 
 - python3 -m venv .venv
 - source .venv/bin/activate
