@@ -43,8 +43,7 @@ Similar to the Greedy (Best ride per vehicle) algoritm, it loops through the veh
 The difference relies on the way it chooses the next node to be expanded. In this case, although the heuristic is the same, A* multiplies it by the weight and sums the accumulated score in that current branch of the decision tree so far. The user can control the weight (>=1).
 
 ### Beam Search
-Limits branching using a fixed beam width, trading optimality for performance.
-######### COMPLETAR SE NECESSÁRIO #########
+At each step, picks the earliest-available vehicle and expands the top-k best rides (beam width). Keeps only the k highest-scoring states, trading optimality for performance. The user can control the beam width (≥1).
 
 
 ## Heuristic Design
