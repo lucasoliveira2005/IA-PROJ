@@ -7,7 +7,7 @@
 
 ## Project Overview
 
-This project implements and compares the results of different search algorithms for the Google Hash Code Self-Driving Rides problem.
+This project implements and compares the results of different informed search algorithms for the Google Hash Code Self-Driving Rides problem.
 
 The goal is to assign pre-booked rides to a defined fleet of self-driving vehicles in a simulated city in order to maximise the total score, considering distance, timing constraints, and bonus rewards.
 
@@ -58,8 +58,7 @@ Since the state space grows exponentially (V^R), memory consumption increases dr
 
 
 ### Beam Search
-Limits branching using a fixed beam width, trading optimality for performance.
-######### COMPLETAR SE NECESSÁRIO #########
+At each step, picks the earliest-available vehicle and expands the top-k best rides (beam width). Keeps only the k highest-scoring states, trading optimality for performance. The user can control the beam width (≥1).
 
 
 ## Heuristic Design
@@ -93,12 +92,15 @@ To reduce ordering bias, vehicles are randomly shuffled at each iteration, allow
 
 - choose_best_vehicle_for_ride(state, bonus, T): selects the globally best (vehicle, ride) pair, corresponding to the initial greedy strategy.
 
+- Beam Search (computed inline): value = ride_dist - dist_to_start - wait_time (+ bonus if vehicle arrives on time)
+
 - greedy_search(state, bonus, T): main greedy algorithm using local decisions (best ride per vehicle)
 
 - old_greedy_search(state, bonus, T): baseline greedy approach used for comparison.
 
 - State A_star(const vector<Vehicle>& init_v, const vector<Ride>& all_rides, int B, int T, int weight)
 
+- beam_search(initial_state, beam_width, bonus, T): at each step picks the earliest-available vehicle, scores all feasible rides with the heuristic inline, expands the top beam_width branches by cloning the state, and keeps only the beam_width highest-scoring states. No separate heuristic function.
 
 ### Execution Flow:
 1. Load input dataset
@@ -111,6 +113,12 @@ To reduce ordering bias, vehicles are randomly shuffled at each iteration, allow
 
 ## How to Run
 
+First of all, it is necessary to install the dependencies. We've created a script that automates this task.
+
+```
+-./setup.sh
+```
+
 1. Run the program in "project1_IA.py".
 2. Select an input file from the menu.
 3. Choose the algorithm to run.
@@ -119,9 +127,9 @@ To reduce ordering bias, vehicles are randomly shuffled at each iteration, allow
 6. If multiple runs are selected, specify the number of runs.
 7. Results are displayed in the console, and the best solution is saved in the "outputs/" folder.
 
-###################################################################
-######### MUDAR PARA A MANEIRA DE UTILIZAÇÃO DO GUI FINAL #########
-###################################################################
+### Run through the GUI
+
+Users also have the option to run and see the results in the UI. Just run the "server.py" and "localhost:5000/" will be available
 
 ## Input and Output Structure
 
@@ -133,24 +141,28 @@ Users can add their own datasets following the same format.
 Output files are written to the "outputs/" folder.
 Each output corresponds to the selected input file and contains the assigned rides for each vehicle.
 
-###################################################################
-######### MUDAR PARA A MANEIRA DE UTILIZAÇÃO DO GUI FINAL #########
-###################################################################
-
 ## Dataset Description
 
 The "inputs/" folder already comes with datasets that were used to test the algorithms.
 The following datasets were taken from the official Google Hash Code challenge repository:
+
 - a_example.in : very few rides, used mainly for debugging.
+
 - b_should_be_easy.in : main dataset used for testing with low complexity and a meaningful number of rides.
+
 - c_no_hurry.in : very large number of rides, computationally expensive, making it unsuitable for A* or Beam Search.
+
 - d_metropolis.in : large amount of rides with a big degree of complexity that attempt to create a realistic portrayal of transit in a real metropolis. It's computational expensive, making it unsuitable for A* or Beam Search, but works as the best test for the normal greedy algorithm.
+
 - e_high_bonus.in : large amount of rides with focus on the impact of bonuses in the calculations of the heuristic. It's computational expensive, making it unsuitable for A* or Beam Search.
 
+The following datasets were created by us to facilitate the testing and comparisson of the algorithms, especially for the more computationally expensive approaches such as A* and Beam Search:
 
-##########################################################################
-####### COMPLETAR COM DATSETS ADICIONADOS QUE NÃO PERTENCEM AO PROBLEM ###
-##########################################################################
+- f_teste.in: custom small dataset with very few rides (15) and a minimal fleet (5 vehicles). Low complexity, suitable for all algorithms including A* and Beam Search. Useful for debugging and validating algorithm correctness.
+
+- g_teste.in: custom dataset with 50 rides and a large fleet (100 vehicles) relative to the number of rides. Useful for comparing fleet utilisation and ride distribution across algorithms. Suitable for all algorithms.
+
+- h_teste.in: custom balanced dataset with 100 rides and 100 vehicles (1 ride per vehicle on average). Suitable for all algorithms including A* and Beam Search. Good for evaluating how each algorithm handles an evenly distributed workload.
 
 
 ## Experimental Results
@@ -172,19 +184,8 @@ The goal is to analyse performance, scalability, and solution quality across dif
 
 ## Notes on Complexity and Limitations
 
-Greedy algorithms scale well with large datasets, although the initial greedy strategy is less time efficient and produces worse results.
+Greedy algorithms scale well with large datasets, although the initial greedy strategy is less time efficient and tends to produce worse results.
+
 In contrast, A* and Beam Search suffer from exponential growth in the search space, making them infeasible for large inputs or real-life scenarios.
 
 A warning mechanism is included to alert the user when attempting to run computationally expensive algorithms (such as A* or Beam Search) on large datasets.
-
-COMANDOS:
--./setup.sh
--python project1_IA.py
-
-
-
-NOTAS:
-
-- python3 -m venv .venv
-- source .venv/bin/activate
-- pip install -r requirements.txt
