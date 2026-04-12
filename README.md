@@ -177,9 +177,50 @@ Metrics considered:
 
 The goal is to analyse performance, scalability, and solution quality across different problem sizes.
 
-##########################################################################
-####### COMPLETAR COM A COMPARAÇÃO DOS DIFERENTES ALGORITMOS E DATSETS ###
-##########################################################################
+Results were obtained by running each algorithm once per dataset (A\* and Beam Search with default parameters). The normalised score is computed as `score / theoretical_max`, where `theoretical_max = sum(ride_distance + B)` across all N rides. Execution time refers to total wall-clock time for the run.
+ 
+### Results Table
+ 
+| Dataset | Algorithm | Score | Score/ride | Norm. score | Time (s) |
+|---|---|---|---|---|---|
+| a_example | G1 — Greedy (best ride/vehicle) | 10 | 3.33 | 0.7143 | 0.00 |
+| a_example | G2 — Greedy (best vehicle/ride) | 10 | 3.33 | 0.7143 | 0.00 |
+| a_example | A* (Weighted, w=1) | 10 | 3.33 | 0.7143 | 1.79 |
+| a_example | Beam Search | 10 | 3.33 | 0.7143 | 0.00 |
+| b_should_be_easy | G1 — Greedy (best ride/vehicle) | 176,777 | 589.26 | 0.9778 | 0.04 |
+| b_should_be_easy | G2 — Greedy (best vehicle/ride) | 173,027 | 576.76 | 0.9570 | 3.57 |
+| b_should_be_easy | A* (Weighted, w=1) | 176,877 | 589.59 | 0.9783 | 1.96 |
+| b_should_be_easy | Beam Search | 176,877 | 589.59 | 0.9783 | 0.05 |
+| c_no_hurry | G1 — Greedy (best ride/vehicle) | 15,334,081 | 1,533.41 | 0.9154 | 221.22 |
+| c_no_hurry | G2, A*, BS | — | — | — | too slow |
+| d_metropolis | G1 — Greedy (best ride/vehicle) | 11,042,977 | 1,104.30 | 0.7737 | 101.15 |
+| d_metropolis | G2, A*, BS | — | — | — | too slow |
+| e_high_bonus | G1 — Greedy (best ride/vehicle) | 21,458,945 | 2,145.89 | 0.9934 | 102.94 |
+| e_high_bonus | G2, A*, BS | — | — | — | too slow |
+| f_teste | G1 — Greedy (best ride/vehicle) | 9,690 | 646.00 | 0.9974 | 0.00 |
+| f_teste | G2 — Greedy (best vehicle/ride) | 9,590 | 639.33 | 0.9871 | 0.00 |
+| f_teste | A* (Weighted, w=1) | 9,690 | 646.00 | 0.9974 | 2.94 |
+| f_teste | Beam Search | 9,690 | 646.00 | 0.9974 | 0.00 |
+| g_teste | G1 — Greedy (best ride/vehicle) | 26,967 | 539.34 | 0.9373 | 0.01 |
+| g_teste | G2 — Greedy (best vehicle/ride) | 26,542 | 530.84 | 0.9225 | 0.24 |
+| g_teste | A* (Weighted, w=1) | 26,967 | 539.34 | 0.9373 | 6.30 |
+| g_teste | Beam Search | 26,967 | 539.34 | 0.9373 | 0.00 |
+| h_teste | G1 — Greedy (best ride/vehicle) | 55,731 | 557.31 | 0.9581 | 0.01 |
+| h_teste | G2 — Greedy (best vehicle/ride) | 54,756 | 547.56 | 0.9413 | 1.02 |
+| h_teste | A* (Weighted, w=1) | 55,731 | 557.31 | 0.9581 | 2.97 |
+| h_teste | Beam Search | 55,731 | 557.31 | 0.9581 | 0.02 |
+ 
+### Analysis
+ 
+**Solution quality (normalised score):**
+ 
+On small and medium datasets (a, b, f, g, h), G1, A*, and Beam Search consistently achieve the same or near-identical normalised scores. G2 is always the weakest, scoring 1–4 percentage points below the others due to its structural bias: it tends to overload a small number of vehicles while leaving most of the fleet idle, as seen in its vehicle distribution (e.g., on b: only 17/100 vehicles active vs 100/100 for the others).
+ 
+On the large datasets (c, d, e), only G1 was feasible. It achieved strong results on c (0.9154) and e (0.9934), but a noticeably lower score on d (0.7737), which has a large grid (10,000x10,000), fewer time steps relative to the grid size, and no bonus — making it structurally harder to optimise with a greedy approach.
+ 
+**Execution time:**
+ 
+G1 and Beam Search are consistently the fastest on small datasets (under 0.05s). G2 is significantly slower than G1 on b and h due to its O(F×N) global search at every step. A* is the slowest on small datasets (1.79s–6.30s) because it maintains a priority queue of states, but remains tractable. On large datasets, G1 takes 100–220 seconds for a single run, making multiple runs impractical; all other algorithms are infeasible.
 
 
 ## Notes on Complexity and Limitations
