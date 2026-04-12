@@ -3,6 +3,7 @@ import random
 import statistics
 import time as run_time
 import sys
+import subprocess
 
 #-------Definitions-------#
 class Ride:
@@ -454,6 +455,9 @@ def solve():
 
     run_start = run_time.time() # starts timer to track program run time
 
+    if (alg == 3):
+        subprocess.run(["g++", "-O3", "-Wall", "aStar.cpp", "-o", "aStar"], check=True)
+
     for i in range(n_runs):
         print(f"Run {i+1}/{n_runs}", end="\r") # track progress
         # recreate vehicles and state each run (necessary since they're modified with each run of the algorithm)
@@ -467,9 +471,11 @@ def solve():
             result = old_greedy_search(state, B, T)
 
         elif alg == 3: # weighted A* search
-            ##### insert here call for weighted A* search #####
-            print("\nWeighted A* not implemented yet.")
-            continue
+            result = subprocess.run(
+                ["./aStar", {weight}],
+                capture_output=True,
+                text=True
+            )
 
         elif alg == 4: # beam search
             ##### insert here call for beam search #####

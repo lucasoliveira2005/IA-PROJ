@@ -7,6 +7,7 @@ Abre: http://localhost:5000
 import os
 import statistics
 import time as run_time
+import subprocess
 from flask import Flask, request, jsonify, send_from_directory
 
 from project1_IA import (
@@ -46,6 +47,36 @@ def state_to_json(state, rides_map):
         "assigned": sum(len(v["rides"]) for v in vehicles_out),
     }
 
+def load_cpp_best(out_path, score):
+    vehicles = []
+    ass = 0
+
+    with open(out_path) as f:
+        lines = f.read().strip().splitlines()
+
+    for i, line in enumerate(lines):
+        if not line.strip():
+            continue
+
+        parts = list(map(int, line.split()))
+        ride_ids = parts[1:] if len(parts) > 1 else []
+
+        ass += parts[0]
+
+        v = {
+                "id": i,
+                "rides": ride_ids,
+                "n_rides": parts[0]
+            }
+        
+        vehicles.append(v)
+
+    return {
+        "score": score,
+        "vehicles": vehicles,
+        "assigned": ass,
+    }
+
 
 # ── Rotas ─────────────────────────────────────────────────────────────────────
 
@@ -63,8 +94,9 @@ def run():
         file_content = data.get("content", "")
         n_runs     = max(1, int(data.get("n_runs", 1)))
         algorithm  = int(data.get("algorithm", 1))   # 1, 2, 3 ou 4
-        weight     = max(1, int(data.get("weight", 5)))
+        weight     = max(1, int(data.get("weight", 1)))
         beam_width = max(1, int(data.get("beam_width", 3)))
+        filename = data.get("filename", "")
 
         # Parse ficheiro
         lines = file_content.strip().splitlines()
@@ -73,53 +105,72 @@ def run():
         for i in range(1, N + 1):
             a, b, x, y, s, f = map(int, lines[i].split())
             rides.append(Ride(i - 1, a, b, x, y, s, f))
-
         rides_map = {r.id: r for r in rides}
         theoretical_max = sum(r.distance() + B for r in rides)
 
-        best_state = None
-        best_score = -1
-        scores = []
-
         t_start = run_time.time()
 
-        for _ in range(n_runs):
-            vehicles = [Vehicle(i) for i in range(F)]
-            state = HashCodeState(vehicles, list(rides))
+        if (algorithm == 3):
+            subprocess.run(["g++", "-O3", "-Wall", "aStar.cpp", "-o", "aStar"], capture_output=True)
+            cpp_result = subprocess.run(["./aStar", filename, str(weight)], capture_output=True, text=True, check=True)
+            elapsed = run_time.time() - t_start
 
-            if algorithm == 1:
-                result = greedy_search(state, B, T)
-            elif algorithm == 2:
-                result = old_greedy_search(state, B, T)
-            elif algorithm == 3:
-                result = weighted_astar_search(state, B, T, weight=weight)
-            elif algorithm == 4:
-                result = beam_search(state, beam_width, B, T)
-            else:
-                return jsonify({"error": f"Algoritmo {algorithm} desconhecido"}), 400
+            lines = [l.strip() for l in cpp_result.stdout.splitlines() if l.strip()]
+            file_path = lines[0]
+            score = int(lines[1])
 
-            scores.append(result.score)
-            if result.score > best_score:
-                best_score = result.score
-                best_state = result
+            return jsonify({
+                "params": {"R": R, "C": C, "F": F, "N": N, "B": B, "T": T},
+                "best": load_cpp_best(file_path, score),
+                "scores": [score],
+                "avg": score,
+                "std": 0,
+                "min": score,
+                "max": score,
+                "time": round(elapsed, 4),
+                "theoretical_max": theoretical_max,
+            })
+        
+        else:
+            best_state = None
+            best_score = -1
+            scores = []
 
-        elapsed = run_time.time() - t_start
+            for _ in range(n_runs):
+                vehicles = [Vehicle(i) for i in range(F)]
+                state = HashCodeState(vehicles, list(rides))
 
-        # Guardar .out
-        output_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "outputs")
-        os.makedirs(output_dir, exist_ok=True)
+                if algorithm == 1:
+                    result = greedy_search(state, B, T)
+                elif algorithm == 2:
+                    result = old_greedy_search(state, B, T)
+                elif algorithm == 4:
+                    result = beam_search(state, beam_width, B, T)
+                else:
+                    return jsonify({"error": f"Algoritmo {algorithm} desconhecido"}), 400
 
-        return jsonify({
-            "params": {"R": R, "C": C, "F": F, "N": N, "B": B, "T": T},
-            "best": state_to_json(best_state, rides_map),
-            "scores": scores,
-            "avg": sum(scores) / len(scores),
-            "std": statistics.stdev(scores) if len(scores) > 1 else 0,
-            "min": min(scores),
-            "max": max(scores),
-            "time": round(elapsed, 4),
-            "theoretical_max": theoretical_max,
-        })
+                scores.append(result.score)
+                if result.score > best_score:
+                    best_score = result.score
+                    best_state = result
+
+            elapsed = run_time.time() - t_start
+
+            # Guardar .out
+            output_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "outputs")
+            os.makedirs(output_dir, exist_ok=True)
+
+            return jsonify({
+                "params": {"R": R, "C": C, "F": F, "N": N, "B": B, "T": T},
+                "best": state_to_json(best_state, rides_map),
+                "scores": scores,
+                "avg": sum(scores) / len(scores),
+                "std": statistics.stdev(scores) if len(scores) > 1 else 0,
+                "min": min(scores),
+                "max": max(scores),
+                "time": round(elapsed, 4),
+                "theoretical_max": theoretical_max,
+            })
 
     except Exception as e:
         traceback.print_exc()

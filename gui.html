@@ -312,12 +312,22 @@
                 <div class="alg-desc">Abordagem local, distribuição equilibrada</div>
               </div>
             </div>
-            <div class="alg-card selected" id="alg-card-2" onclick="toggleAlg(2)">
+            <div class="alg-card" id="alg-card-2" onclick="toggleAlg(2)">
               <div class="alg-checkbox"></div>
               <span class="alg-badge" style="background:var(--alg2-l);color:var(--alg2);">G2</span>
               <div class="alg-info">
                 <div class="alg-name">Greedy (melhor veículo/corrida)</div>
                 <div class="alg-desc">Seleção global, tende a concentrar corridas</div>
+              </div>
+            </div>
+
+            <div class="alg-card" id="alg-card-3" onclick="toggleAlg(3)">
+              <div class="alg-checkbox"></div>
+              <span class="alg-badge" style="background:var(--alg2-l);color:var(--alg2);">A*</span>
+              <div class="alg-info">
+                <div class="alg-name">A* (melhor corrida/veículo)</div>
+                <div class="alg-desc">Guarda os estados anteriores, peso da heurística configurável</div>
+                <div class="alg-warning" id="beam-warn" style="display:none;">⚠ Dataset grande — pode ser lento</div>
               </div>
             </div>
 
@@ -328,6 +338,12 @@
                 <div class="alg-name">Beam Search</div>
                 <div class="alg-desc">Exploração em feixe, largura configurável</div>
                 <div class="alg-warning" id="beam-warn" style="display:none;">⚠ Dataset grande — pode ser lento</div>
+              </div>
+            </div>
+            <div id="astar-extra" style="display:none;">
+              <div class="extra-param">
+                <label>Peso da heurística:</label>
+                <input type="number" id="astar-weight" value="1" min="1" max="50" />
               </div>
             </div>
             <div id="beam-extra" style="display:none;">
@@ -565,6 +581,7 @@
       }
       // Show/hide extra params
       
+      document.getElementById('astar-extra').style.display  = selectedAlgs.has(3) ? 'block' : 'none';
       document.getElementById('beam-extra').style.display  = selectedAlgs.has(4) ? 'block' : 'none';
     }
 
@@ -592,6 +609,7 @@
       if (!selectedContent || selectedAlgs.size === 0) return;
 
       const nRuns    = Math.max(1, parseInt(document.getElementById('n-runs').value) || 5);
+      const aWeight   = Math.max(1, parseInt(document.getElementById('astar-weight').value) || 1);
       const bWidth   = Math.max(1, parseInt(document.getElementById('beam-width').value) || 3);
       const algsArr  = Array.from(selectedAlgs).sort();
 
@@ -606,14 +624,29 @@
         setProgress(Math.round((i / algsArr.length) * 90), `${meta.short}: a executar...`);
         log(`→ ${meta.name} (${nRuns} runs)...`);
 
+        let body;
+
         try {
-          const body = {
-            content: selectedContent,
-            n_runs: nRuns,
-            algorithm: alg,
-          };
-          if (alg === 3) body.weight = aWeight;
-          if (alg === 4) body.beam_width = bWidth;
+          if (alg === 3) {      //O A* dá sempre o mesmo output e, por outro lado, costuma ser pesado. Não faz sentido correr mais que uma vez
+            body = {
+              content: selectedContent,
+              n_runs: 1,
+              algorithm: alg,
+            };
+
+            body.weight = aWeight;
+
+          } else {
+            body = {
+              content: selectedContent,
+              n_runs: nRuns,
+              algorithm: alg,
+            };
+
+            if (alg === 4) body.beam_width = bWidth;
+          }
+
+          body.filename = document.getElementById('file-name').textContent;
 
           const resp = await fetch(`${API}/run`, {
             method: 'POST',

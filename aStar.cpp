@@ -129,31 +129,26 @@ State A_star(const vector<Vehicle>& init_v, const vector<Ride>& all_rides, int B
     return best_node;
 }
 
-int main() {
-    string input_folder = "inputs";
-    vector<string> files;
-    
-    cout << "\nAvailable input files:" << endl;
-    int count = 1;
-    for (const auto& entry : fs::directory_iterator(input_folder)) {
-        if (entry.is_regular_file()) {
-            files.push_back(entry.path().string());
-            cout << count++ << ". " << entry.path().filename().string() << endl;
-        }
+int main(int argc, char* argv[]) {
+
+    if (argc < 3) {
+        cout << "Uso: ./programa <filename> <weight>\n";
+        return 1;
     }
 
-    int choice;
-    cout << "Select a file by number: ";
-    cin >> choice;
-    string name_input = files[choice - 1];
+    string filename = argv[1];
+    int weight = stoi(argv[2]);
 
-    int weight = 1;
-    cout << "Choose weight (>=1): ";
-    cin >> weight;
+    string input_folder = "inputs";
+    
+    string fullpath = input_folder + "/" + filename;
+    ifstream infile(fullpath);
 
-    ifstream infile(name_input);
     int R, C, F, N, B, T;
-    infile >> R >> C >> F >> N >> B >> T;
+    if (!(infile >> R >> C >> F >> N >> B >> T)) {
+        cout << "Erro: ficheiro invalido ou corrompido" << endl;
+        return 1;
+    }
 
     vector<Ride> rides(N);
     for (int i = 0; i < N; ++i) {
@@ -178,7 +173,7 @@ int main() {
         return a.id < b.id;
     });
 
-    string out_name = "outputs/" + fs::path(name_input).stem().string() + ".out";
+    string out_name = "outputs/" + fs::path(filename).stem().string() + ".out";
     ofstream outfile(out_name);
     for (const auto& v : result.vehicles) {
         outfile << v.assigned_rides.size();
@@ -186,8 +181,8 @@ int main() {
         outfile << "\n";
     }
 
-    cout << "\nOutput written to: " << out_name << endl;
-    cout << "Final Score: " << result.score << endl;
+    cout << out_name << endl;
+    cout << result.score << endl;
 
     return 0;
 }
