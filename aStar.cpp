@@ -10,6 +10,8 @@
 using namespace std;
 namespace fs = std::filesystem;
 
+#define MAXNODES 1000000
+
 struct Ride {
     int id;
     int a, b, x, y, s, f;
@@ -62,14 +64,6 @@ void apply_operator(State& state, Vehicle& vehicle, const Ride& ride, const int 
     state.currentRide = rideIdx;
 }
 
-State greedy_search(vector<Vehicle> vels, const vector<Ride>& rds, int B, int T) {
-    State s;
-    s.vehicles = vels;
-    s.used_rides.assign(rds.size(), false);
-    
-    return s;
-}
-
 State A_star(const vector<Vehicle>& init_v, const vector<Ride>& all_rides, int B, int T, int weight) {
 
     priority_queue<State> pq;
@@ -81,7 +75,7 @@ State A_star(const vector<Vehicle>& init_v, const vector<Ride>& all_rides, int B
     State best_node = initial;
     int nodes = 0;
 
-    while (!pq.empty() && nodes < INT64_MAX) { // Limite de expansão para não estourar RAM
+    while (!pq.empty() && nodes < MAXNODES) { // Limite de expansão para não estourar RAM
 
         State curr = pq.top();
         pq.pop();
@@ -153,13 +147,9 @@ int main() {
     cin >> choice;
     string name_input = files[choice - 1];
 
-    cout << "\nAlgorithm\n1. Greedy\n2. Weighted A*\nChoose: ";
-    int algo; cin >> algo;
     int weight = 1;
-    if (algo == 2) {
-        cout << "Choose weight (>=1): ";
-        cin >> weight;
-    }
+    cout << "Choose weight (>=1): ";
+    cin >> weight;
 
     ifstream infile(name_input);
     int R, C, F, N, B, T;
@@ -182,8 +172,7 @@ int main() {
     for (int i = 0; i < F; ++i) vehicles[i].id = i;
 
     State result;
-    if (algo == 1) result = greedy_search(vehicles, rides, B, T);
-    else result = A_star(vehicles, rides, B, T, weight);
+    result = A_star(vehicles, rides, B, T, weight);
 
     sort(result.vehicles.begin(), result.vehicles.end(), [](const Vehicle& a, const Vehicle& b) {
         return a.id < b.id;

@@ -154,3 +154,11 @@ A warning mechanism is included to alert the user when attempting to run computa
 COMANDOS:
 -pip install flask
 -python project1_IA.py
+
+
+
+NOTAS:
+
+- python3 -m venv .venv
+- source .venv/bin/activate
+- pip install -r requirements.txt

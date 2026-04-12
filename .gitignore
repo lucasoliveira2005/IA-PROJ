@@ -1,4 +1,5 @@
 outputs/
+.venv/
 !outputs/.gitkeep
 
 aStar
