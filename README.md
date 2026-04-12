@@ -38,7 +38,9 @@ This tends to favour vehicles that have already been assigned rides and leads to
 
 ### Weighted A* Search
 Explores the search space more optimally, but is computationally expensive for large datasets.
-######### COMPLETAR SE NECESSÁRIO #########
+Similar to the Greedy (Best ride per vehicle) algoritm, it loops through the vehicles and tries to find the best ride, avoiding to assign the rides to only a few vehicles.
+
+The difference relies on the way it chooses the next node to be expanded. In this case, although the heuristic is the same, A* multiplies it by the weight and sums the accumulated score in that current branch of the decision tree so far. The user can control the weight (>=1).
 
 ### Beam Search
 Limits branching using a fixed beam width, trading optimality for performance.
@@ -152,7 +154,7 @@ In contrast, A* and Beam Search suffer from exponential growth in the search spa
 A warning mechanism is included to alert the user when attempting to run computationally expensive algorithms (such as A* or Beam Search) on large datasets.
 
 COMANDOS:
--pip install flask
+-./setup.sh
 -python project1_IA.py
 
 
