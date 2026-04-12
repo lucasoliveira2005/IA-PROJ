@@ -121,11 +121,10 @@ The following datasets were taken from the official Google Hash Code challenge r
 - c_no_hurry.in : very large number of rides, computationally expensive, making it unsuitable for A* or Beam Search.
 - d_metropolis.in : large amount of rides with a big degree of complexity that attempt to create a realistic portrayal of transit in a real metropolis. It's computational expensive, making it unsuitable for A* or Beam Search, but works as the best test for the normal greedy algorithm.
 - e_high_bonus.in : large amount of rides with focus on the impact of bonuses in the calculations of the heuristic. It's computational expensive, making it unsuitable for A* or Beam Search.
+- f_teste.in: custom small dataset with very few rides (15) and a minimal fleet (5 vehicles). Low complexity, suitable for all algorithms including A* and Beam Search. Useful for debugging and validating algorithm correctness.
+- g_teste.in: custom dataset with 50 rides and a large fleet (100 vehicles) relative to the number of rides. Useful for comparing fleet utilisation and ride distribution across algorithms. Suitable for all algorithms.
+- h_teste.in: custom balanced dataset with 100 rides and 100 vehicles (1 ride per vehicle on average). Suitable for all algorithms including A* and Beam Search. Good for evaluating how each algorithm handles an evenly distributed workload.
 
-
-##########################################################################
-####### COMPLETAR COM DATSETS ADICIONADOS QUE NÃO PERTENCEM AO PROBLEM ###
-##########################################################################
 
 
 ## Experimental Results
