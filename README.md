@@ -69,11 +69,11 @@ To reduce ordering bias, vehicles are randomly shuffled at each iteration, allow
 - choose_best_ride_for_vehicle(state, vehicle, bonus, T): selects the best ride for a given vehicle based on the heuristic.
 - choose_best_vehicle_for_ride(state, bonus, T): selects the globally best (vehicle, ride) pair, corresponding to the initial greedy strategy.
 - ######### ADICIONAR HEURISTIC SELECTION USADAS PARA O A* #########
-- ######### ADICIONAR HEURISTIC SELECTION PARA O BEAM SEARCH #########
+- Beam Search (computed inline): value = ride_dist - dist_to_start - wait_time (+ bonus if vehicle arrives on time)
 - greedy_search(state, bonus, T): main greedy algorithm using local decisions (best ride per vehicle)
 - old_greedy_search(state, bonus, T): baseline greedy approach used for comparison.
 - ######### ADICIONAR SEARCH ALGORITHM FUNCTION USADAS PARA O A* #########
-- ######### ADICIONAR SEARCH ALGORITHM FUNCTION USADAS PARA O BEAM SEARCH #########
+- beam_search(initial_state, beam_width, bonus, T): at each step picks the earliest-available vehicle, scores all feasible rides with the heuristic inline, expands the top beam_width branches by cloning the state, and keeps only the beam_width highest-scoring states. No separate heuristic function.
 
 ### Execution Flow:
 1. Load input dataset
