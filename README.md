@@ -150,3 +150,7 @@ Greedy algorithms scale well with large datasets, although the initial greedy st
 In contrast, A* and Beam Search suffer from exponential growth in the search space, making them infeasible for large inputs or real-life scenarios.
 
 A warning mechanism is included to alert the user when attempting to run computationally expensive algorithms (such as A* or Beam Search) on large datasets.
+
+COMANDOS:
+-pip install flask
+-python project1_IA.py
