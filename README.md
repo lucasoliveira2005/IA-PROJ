@@ -7,8 +7,9 @@
 
 ## Project Overview
 
-This project implements and compares different search and heuristic algorithms for the Google Hash Code Self-Driving Rides problem.
-The objective is to assign pre-booked rides to a defined fleet of self-driving vehicles in a simulated city in order to maximise the total score, considering distance, timing constraints, and bonus rewards.
+This project implements and compares the results of different search algorithms for the Google Hash Code Self-Driving Rides problem.
+
+The goal is to assign pre-booked rides to a defined fleet of self-driving vehicles in a simulated city in order to maximise the total score, considering distance, timing constraints, and bonus rewards.
 
 
 ## Problem Description
@@ -16,11 +17,12 @@ The objective is to assign pre-booked rides to a defined fleet of self-driving v
 Each ride has:
 - a start and end position, which are always different.
 - an earliest start time.
-- a latest finish time, by which the ride must be completed.
+- a latest finish time, by which the ride must be completed, otherwise no points are awarded.
 
 Each vehicle:
 - starts at position (0, 0).
 - is assigned rides such that they're completed before their deadlines.
+- receives a score proportional to the distance correspondent to that specific ride, if it finishes before it's latest finish time
 - receives a bonus if the ride starts exactly at its earliest time.
 
 The map is a rectangular grid of streets with R rows and C columns. There is no limit for how many vehicles can be in the same intersection at the same time.
@@ -38,9 +40,22 @@ This tends to favour vehicles that have already been assigned rides and leads to
 
 ### Weighted A* Search
 Explores the search space more optimally, but is computationally expensive for large datasets.
-Similar to the Greedy (Best ride per vehicle) algoritm, it loops through the vehicles and tries to find the best ride, avoiding to assign the rides to only a few vehicles.
+Similar to the Greedy (Best ride per vehicle) algoritm, it loops through the vehicles and tries to find the best ride, avoiding assigning the rides to only a few vehicles.
 
-The difference relies on the way it chooses the next node to be expanded. In this case, although the heuristic is the same, A* multiplies it by the weight and sums the accumulated score in that current branch of the decision tree so far. The user can control the weight (>=1).
+The difference relies in how the next node to be expanded is chosen. In this case, although the heuristic is the same, A* multiplies it by the weight and sums the accumulated score in that current branch of the decision tree so far. The user can control the weight (>=1) given to the heuristic function.
+
+Instead of looking only at the next decision by finding what move has the highest heuristic, A* combines it with the knowledge it has from past decisions.
+
+As the results prove, this approach cannot be used in larger datasets. It stared to become very slow and although the re-implementation in C++ (versus Python) helped reduce execution time drastically, the problem was now other: since it looks at the past decisions, we have to store that information.
+
+The main data structure used is the Priority-Queue (max-heap). In each step, the node with the highest evaluation function
+
+**f(n) = g(n) + (w* h(n))**,<br> with **g(n)** being the accumulated score, **w** being the weight, and **h(n)** being the heuristic function
+
+is selected from the top of the priority queue. Then, all its children (all the possible next states from the current one) are pushed into the queue, after calculating the evaluation function for each of them. This means that, for that vehicle, all rides are considered and stored.
+
+Since the state space grows exponentially (V^R), memory consumption increases dramatically. As input sizes grow and have more rides, this solution is unfeasible. To mitigate this problem, we added a limit on the number of nodes that can be expanded. As a result, the algorithm doesn't crash, but for larger datasets, it performs worse compared to other approaches because it fails to traverse the tree completely, ending up in an intermediate state and therefore with a lower accumulated score.
+
 
 ### Beam Search
 Limits branching using a fixed beam width, trading optimality for performance.
@@ -49,6 +64,12 @@ Limits branching using a fixed beam width, trading optimality for performance.
 
 ## Heuristic Design
 
+The heuristic function was defined as:
+
+**h(n) = x - y - z**, with:<br>
+**x** being the distance traveled on the ride, <br> **y** being the distance between the current vehicle position and the ride's starting position, <br> and **z** being the time the vehicle has to wait in order to start the ride
+
+
 The heuristic prioritises:
 - longer rides (higher reward)
 - shorter travel distance to the start location (efficiency)
@@ -56,25 +77,28 @@ The heuristic prioritises:
 
 A bonus is added when the vehicle can arrive before the earliest start time, encouraging optimal timing and bonus acquisition.
 
-To reduce ordering bias, vehicles are randomly shuffled at each iteration, allowing multiple runs to explore different solutions.
+To reduce ordering bias, vehicles are randomly shuffled at each iteration, allowing multiple runs to explore different solutions (only in the Greedy approaches).
 
 ## Implementation Overview
 
 ### Classes:
-- Ride: represents a ride with an id, start/end coordinates, time constraints, and distance calculation.
-- Vehicle: represents a vehicle with an id, current positon, time, and assigned rides. Includes helper methods such as feasibility checks and distance calculation.
-- HashCodeState: stores current state of the system, including vehicles, remaining rides, and total score.
+- **Ride**: represents a ride with an id, start/end coordinates, time constraints, and distance calculation.
+- **Vehicle**: represents a vehicle with an id, current positon, time, and assigned rides. Includes helper methods such as feasibility checks and distance calculation.
+- **HashCodeState**: stores current state of the system, including vehicles, remaining rides, and total score.
 
 ### Key Functions:
 - apply_operator(state, operator, bonus, T): assigns a ride to a vehicle and updates its state (position, time, and score).
+
 - choose_best_ride_for_vehicle(state, vehicle, bonus, T): selects the best ride for a given vehicle based on the heuristic.
+
 - choose_best_vehicle_for_ride(state, bonus, T): selects the globally best (vehicle, ride) pair, corresponding to the initial greedy strategy.
-- ######### ADICIONAR HEURISTIC SELECTION USADAS PARA O A* #########
-- ######### ADICIONAR HEURISTIC SELECTION PARA O BEAM SEARCH #########
+
 - greedy_search(state, bonus, T): main greedy algorithm using local decisions (best ride per vehicle)
+
 - old_greedy_search(state, bonus, T): baseline greedy approach used for comparison.
-- ######### ADICIONAR SEARCH ALGORITHM FUNCTION USADAS PARA O A* #########
-- ######### ADICIONAR SEARCH ALGORITHM FUNCTION USADAS PARA O BEAM SEARCH #########
+
+- State A_star(const vector<Vehicle>& init_v, const vector<Ride>& all_rides, int B, int T, int weight)
+
 
 ### Execution Flow:
 1. Load input dataset
