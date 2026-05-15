@@ -69,7 +69,7 @@ Random_state: it’s used for the test conditions that use randomness to be alwa
 
 - gym_churn_noisy_20000.csv: based on the previous 20000 members dataset but with added noise for realism. Noise was added with the help of Gemini in the following way:
 
-# Asked in prompt:
+### Asked in prompt:
 
 - contradictory customers (like high satisfaction but churn, low satisfaction but stay, high engagement but churn (life change, relocation), low engagement but stay (contract lock-in))
 
@@ -81,8 +81,8 @@ Random_state: it’s used for the test conditions that use randomness to be alwa
 
 - inject "real-world failure cases" (like people who renew contracts despite dissatisfaction, people who churn immediately after signing up, seasonal churn spikes, random external churn causes (moving, injury, financial issues))
 
-# Resulting dataset with:
-# Contradictory Customer Profiles:
+### Resulting dataset with:
+### Contradictory Customer Profiles:
 
 1. High-Satisfaction Churners: Applied to 5% of users with a satisfaction score > 4.5. These represent people who like the gym but might be moving or changing lifestyles.
 
@@ -92,16 +92,16 @@ Random_state: it’s used for the test conditions that use randomness to be alwa
 
 4. Low-Engagement Stayers: Users with very low attendance but long-term contracts (6–12 months) who are "locked in" and haven't officially churned yet.
 
-# Real-World Failure Cases:Immediate Churn: 
+### Real-World Failure Cases:Immediate Churn: 
 
 1. Injected "unlucky" signups where users churn within their first month (Lifetime <= 1) regardless of their satisfaction or initial engagement.
 
-Random External Churn: A random 2% baseline churn rate was applied to simulate unpredictable life events like injuries, financial shifts, or job changes that no feature can predict.
+2. Random External Churn: A random 2% baseline churn rate was applied to simulate unpredictable life events like injuries, financial shifts, or job changes that no feature can predict.
 
-# Feature Overlap & Correlated Randomness:
+### Feature Overlap & Correlated Randomness:
 
 Gaussian Jitter: Added random noise (relative to standard deviation) to Satisfaction_score, Avg_visits_total, Avg_visits_last_month, and Avg_additional_charges_total.This ensures that the boundary between classes is "fuzzy" rather than a hard threshold.
 
-# Global Probabilistic Noise:
+### Global Probabilistic Noise:
 
 A final 3% random label flip was applied across the entire dataset to ensure that no model can reach 100% accuracy, as there is now a fundamental "irreducible error" (Bayes error) present in the data.
