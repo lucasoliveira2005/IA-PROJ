@@ -1,10 +1,15 @@
 import os
 import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans
 from sklearn.metrics import accuracy_score
+from sklearn.decomposition import PCA
+
 
 RANDOM_STATE = 1000
 
@@ -78,8 +83,49 @@ def cluster():
     
     # Adds a "Cluster" column to represent in which cluster said member is grouped into
     df["Cluster"] = clusters
+    df_encoded["Cluster"] = clusters
     
     return df
+
+
+def plotClusters(df_to_plot, cluster_col, features):
+    plt.figure(figsize=(10, 7))
+    
+    if len(features) == 2:
+        x_axis = features[0]
+        y_axis = features[1]
+        df_plot = df_to_plot.copy()
+        title = f"Cluster Visualization ({x_axis} vs {y_axis})"
+        
+    else:
+        pca = PCA(n_components=2, random_state=42)
+        pca_result = pca.fit_transform(df_to_plot[features])
+        
+        df_plot = pd.DataFrame(pca_result, columns=['Component1', 'Component2'])
+        df_plot[cluster_col] = df_to_plot[cluster_col].values
+        
+        x_axis = 'Component1'
+        y_axis = 'Component2'
+        title = "Visualization of the Clusters (Reduced via PCA)"
+    
+    sns.scatterplot(
+        x=x_axis, 
+        y=y_axis, 
+        hue=cluster_col, 
+        data=df_plot, 
+        palette='viridis', 
+        style=cluster_col,
+        s=100, 
+        alpha=0.8
+    )
+    
+    plt.title(title, fontsize=14, fontweight='bold', pad=15)
+    plt.xlabel(x_axis, fontsize=12)
+    plt.ylabel(y_axis, fontsize=12)
+    plt.legend(title='Cluster', bbox_to_anchor=(1.05, 1), loc='upper left')
+    plt.grid(True, linestyle='--', alpha=0.5)
+    plt.tight_layout()
+    plt.show()
 
 
 def getInput():
@@ -180,3 +226,13 @@ if mode == 1:
 elif mode == 2:
     results = cluster()
     output(2, filename, ext, results)
+
+    clusterFeatures = [col for col in df_encoded.columns if col not in ["Customer_ID", "Cluster", "Churn"]]
+    plotClusters(df_encoded, 'Cluster', clusterFeatures)
+
+    # Analisar o perfil de cada cluster
+    print("\n--- Perfil dos Grupos (Médias) ---")
+    # Usamos o df original para as médias serem fáceis de ler (ex: idade real em vez de 0.123)
+    analise = results.groupby('Cluster').mean(numeric_only=True)
+    name_output = os.path.join("Outputs", "cluster_profiles" + ".xlsx")
+    analise.to_excel(name_output, index=False)
