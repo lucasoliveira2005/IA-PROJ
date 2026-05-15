@@ -12,10 +12,11 @@ from sklearn.decomposition import PCA
 
 
 RANDOM_STATE = 1000
+useDefaultFeatures = True
 
-def classification():
-    X = df_encoded.drop(columns=["Churn"]) # remove "Churn" as a variable to determine the churn
-    y = df_encoded["Churn"] # Use the "Churn" column as the target column to train
+def classification(df_input, df_original):
+    X = df_input.drop(columns=["Churn"]) # remove "Churn" as a variable to determine the churn
+    y = df_input["Churn"] # Use the "Churn" column as the target column to train
     
     # Splits dataset by rows into training set (data with which pattern recognition is trained) and test section (data with which knowledge is evaluated)
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=RANDOM_STATE)
@@ -57,7 +58,7 @@ def classification():
     
     # Output dataframe
     results = pd.DataFrame({
-        "Customer_ID": df.loc[X_test.index, "Customer_ID"],
+        "Customer_ID": df_original.loc[X_test.index, "Customer_ID"],
         "Churn_Prediction": predictions,
         "Churn_Probability": probabilities,
         "Risk_Level": risk_categories,
@@ -129,7 +130,7 @@ def plotClusters(df_to_plot, cluster_col, features):
 
 
 def getInput():
-    input_folder = "Inputs"
+    input_folder = "inputs"
 
     # Get all files in the folder (checks if the path file contains the folder)
     files = [f for f in os.listdir(input_folder) if os.path.isfile(os.path.join(input_folder, f))]
@@ -175,7 +176,7 @@ def getInput():
 
 
 def output(mode, filename, ext, results):
-    output_folder = "Outputs"
+    output_folder = "outputs"
 
     if mode == 1:
         operation_output = "_classification"
@@ -215,11 +216,20 @@ while True:
 
 
 df_features = df.drop(columns=["Customer_ID"])
-df_encoded = pd.get_dummies(df_features, drop_first=True) # Convert categorical variables into numerical dummy variables
+all_cols = df_features.columns.tolist()
+default_cols = ["gender", "Age", "Near_Location", "Partner", "Promo_friends", "Lifetime", "Churn"]
+
+if useDefaultFeatures:
+    cols_to_use = [c for c in default_cols if c in df_features.columns]
+    df_to_encode = df_features[cols_to_use]
+else:
+    df_to_encode = df_features
+
+df_encoded = pd.get_dummies(df_to_encode, drop_first=True) # Convert categorical variables into numerical dummy variables
 
 # Classification mode
 if mode == 1:
-    results = classification()
+    results = classification(df_encoded, df)
     output(1, filename, ext, results)
     
 # Cluster mode
